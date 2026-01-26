@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EquityCloud Analytics</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; padding: 50px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 450px; }
+        h1 { color: #0078d4; margin-top: 0; font-size: 1.5rem; }
+        .search-box { display: flex; gap: 10px; margin: 20px 0; }
+        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #0078d4; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        button:hover { background: #005a9e; }
+        #result { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px; font-size: 0.9rem; min-height: 50px; }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>EquityCloud Dashboard</h1>
+        <p>Enter a ticker symbol to fetch real-time data.</p>
+
+        <div class="search-box">
+            <input type="text" id="symbolInput" placeholder="e.g. MSFT, AAPL, TSLA">
+            <button onclick="fetchStock()">Search</button>
+        </div>
+
+        <div id="result">
+            <span class="loading">Waiting for input...</span>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStock() {
+            const symbol = document.getElementById('symbolInput').value.toUpperCase();
+            const resultDiv = document.getElementById('result');
+
+            if (!symbol) return;
+
+            resultDiv.innerHTML = '<span class="loading">Querying Azure Backend...</span>';
+
+            try {
+                // Professional Tip: Using a relative path leverages the ASWA proxy
+                const response = await fetch(`/api/quote/${symbol}`);
+
+                if (!response.ok) throw new Error('API Error');
+
+                const data = await response.json();
+
+                // Formatting the response for the UI
+                const quote = data['Global Quote'];
+                if (quote) {
+                    resultDiv.innerHTML = `
+                        <p><strong>Symbol:</strong> ${quote['01. symbol']}</p>
+                        <p><strong>Price:</strong> $${parseFloat(quote['05. price']).toFixed(2)}</p>
+                        <p><strong>Change:</strong> ${quote['10. change percent']}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = "Symbol not found or API limit reached.";
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span style="color:red">Error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
