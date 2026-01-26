@@ -1,3 +1,26 @@
+# =====================================================
+# EquityCloud - Git Ignore
+# =====================================================
+
+# Config & Docs
+*.instructions.md
+PROJECT_STATE.md
+PROJECT_CONTEXT.md
+.github/prompts/
+*-GUIDE.html
+*-NOTES.md
+docs/*.md
+docs/*.html
+
+# Azure & Environment Secrets
+local.settings.json
+.env
+.env.local
+.env.production
+.env.development
+*.tfvars
+bicep.parameters.*.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
