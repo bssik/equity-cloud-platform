@@ -58,6 +58,201 @@ const CompanyNames = {
             console.log('Using fallback company names');
             return false;
         }
+    },
+
+    // Get all symbols as an array for autocomplete
+    getAllSymbols() {
+        return Object.keys(this).filter(key => typeof this[key] === 'string' && key !== 'get' && key !== 'loadFromSP500' && key !== 'getAllSymbols');
+    }
+};
+
+// ============================================
+// AUTOCOMPLETE SYSTEM
+// ============================================
+const Autocomplete = {
+    activeInput: null,
+    activeSuggestions: null,
+    selectedIndex: -1,
+
+    init(inputId, suggestionsId) {
+        const input = document.getElementById(inputId);
+        const suggestions = document.getElementById(suggestionsId);
+
+        if (!input || !suggestions) return;
+
+        // Input event - show suggestions as user types
+        input.addEventListener('input', (e) => {
+            this.handleInput(e.target, suggestions);
+        });
+
+        // Focus event - show suggestions if input has value
+        input.addEventListener('focus', (e) => {
+            if (e.target.value.trim()) {
+                this.handleInput(e.target, suggestions);
+            }
+        });
+
+        // Blur event - hide suggestions (with delay for click events)
+        input.addEventListener('blur', () => {
+            setTimeout(() => this.hideSuggestions(suggestions), 200);
+        });
+
+        // Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+            this.handleKeydown(e, input, suggestions);
+        });
+    },
+
+    handleInput(input, suggestions) {
+        const query = input.value.toUpperCase().trim();
+
+        if (!query || query.length === 0) {
+            this.hideSuggestions(suggestions);
+            return;
+        }
+
+        this.activeInput = input;
+        this.activeSuggestions = suggestions;
+        this.selectedIndex = -1;
+
+        const matches = this.findMatches(query);
+        this.renderSuggestions(suggestions, matches, query);
+    },
+
+    findMatches(query) {
+        const symbols = CompanyNames.getAllSymbols();
+        const matches = [];
+
+        symbols.forEach(symbol => {
+            const name = CompanyNames.get(symbol);
+            const symbolUpper = symbol.toUpperCase();
+            const nameUpper = name.toUpperCase();
+
+            // Exact match (highest priority)
+            if (symbolUpper === query) {
+                matches.push({ symbol, name, score: 100 });
+            }
+            // Starts with query (high priority)
+            else if (symbolUpper.startsWith(query)) {
+                matches.push({ symbol, name, score: 90 });
+            }
+            // Contains query in symbol (medium priority)
+            else if (symbolUpper.includes(query)) {
+                matches.push({ symbol, name, score: 70 });
+            }
+            // Contains query in company name (lower priority)
+            else if (nameUpper.includes(query)) {
+                matches.push({ symbol, name, score: 50 });
+            }
+            // Fuzzy match (lowest priority)
+            else if (this.fuzzyMatch(query, symbolUpper)) {
+                matches.push({ symbol, name, score: 30 });
+            }
+        });
+
+        // Sort by score (desc) and limit to top 8 results
+        return matches
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8);
+    },
+
+    fuzzyMatch(query, text) {
+        let queryIndex = 0;
+        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+            if (text[i] === query[queryIndex]) {
+                queryIndex++;
+            }
+        }
+        return queryIndex === query.length;
+    },
+
+    renderSuggestions(suggestionsEl, matches, query) {
+        if (matches.length === 0) {
+            suggestionsEl.innerHTML = `<div class="autocomplete-no-results">No matches found for "${query}"</div>`;
+            suggestionsEl.classList.add('visible');
+            return;
+        }
+
+        const html = matches.map((match, index) => `
+            <div class="autocomplete-item" data-symbol="${match.symbol}" data-index="${index}">
+                <span class="autocomplete-symbol">${match.symbol}</span>
+                <span class="autocomplete-name">${match.name}</span>
+            </div>
+        `).join('');
+
+        suggestionsEl.innerHTML = html;
+        suggestionsEl.classList.add('visible');
+
+        // Attach click handlers
+        suggestionsEl.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.selectItem(item.dataset.symbol);
+            });
+        });
+    },
+
+    hideSuggestions(suggestionsEl) {
+        if (suggestionsEl) {
+            suggestionsEl.classList.remove('visible');
+            this.selectedIndex = -1;
+        }
+    },
+
+    selectItem(symbol) {
+        if (this.activeInput) {
+            this.activeInput.value = symbol;
+            this.hideSuggestions(this.activeSuggestions);
+
+            // Trigger input event to update UI (e.g., show clear button)
+            const event = new Event('input', { bubbles: true });
+            this.activeInput.dispatchEvent(event);
+        }
+    },
+
+    handleKeydown(e, input, suggestions) {
+        const items = suggestions.querySelectorAll('.autocomplete-item');
+
+        if (!suggestions.classList.contains('visible') || items.length === 0) {
+            return;
+        }
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.selectedIndex = Math.min(this.selectedIndex + 1, items.length - 1);
+                this.updateSelection(items);
+                break;
+
+            case 'ArrowUp':
+                e.preventDefault();
+                this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+                this.updateSelection(items);
+                break;
+
+            case 'Enter':
+                e.preventDefault();
+                if (this.selectedIndex >= 0) {
+                    const selectedItem = items[this.selectedIndex];
+                    this.selectItem(selectedItem.dataset.symbol);
+                }
+                break;
+
+            case 'Escape':
+                e.preventDefault();
+                this.hideSuggestions(suggestions);
+                break;
+        }
+    },
+
+    updateSelection(items) {
+        items.forEach((item, index) => {
+            if (index === this.selectedIndex) {
+                item.classList.add('selected');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('selected');
+            }
+        });
     }
 };
 
@@ -783,6 +978,12 @@ const UI = {
         this.renderExampleChips();
         Renderer.renderHistory();
         Renderer.renderWatchlist();
+
+        // Initialize autocomplete for all inputs
+        Autocomplete.init('symbolInput', 'symbolSuggestions');
+        Autocomplete.init('compareSymbol1', 'compareSuggestions1');
+        Autocomplete.init('compareSymbol2', 'compareSuggestions2');
+        Autocomplete.init('compareSymbol3', 'compareSuggestions3');
 
         // Event delegation for dynamic elements
         this.attachEventListeners();

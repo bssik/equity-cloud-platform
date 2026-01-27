@@ -331,6 +331,81 @@
             border-color: rgba(0,0,0,.15);
         }
 
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background: var(--card);
+            border: 1px solid rgba(226,232,240,.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.2);
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-suggestions.visible {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            transition: all .15s;
+            border-bottom: 1px solid rgba(226,232,240,.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background: rgba(37,99,235,.15);
+        }
+
+        .autocomplete-symbol {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 13px;
+        }
+
+        .autocomplete-name {
+            font-size: 11px;
+            color: var(--muted2);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 200px;
+        }
+
+        .autocomplete-no-results {
+            padding: 14px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .autocomplete-suggestions {
+                max-height: 180px;
+            }
+
+            .autocomplete-name {
+                max-width: 120px;
+            }
+        }
+
         .watchlist-card {
             margin-top: 24px;
             background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.98));
@@ -1793,6 +1868,7 @@
                         <div class="input-wrapper">
                             <input type="text" id="symbolInput" placeholder="Enter ticker (e.g., AAPL, MSFT)" maxlength="6">
                             <button class="clear-btn" id="clearBtn" title="Clear">✕</button>
+                            <div id="symbolSuggestions" class="autocomplete-suggestions"></div>
                         </div>
                         <button id="searchBtn">Search</button>
                     </div>
@@ -1807,12 +1883,15 @@
                     <div class="compare-inputs">
                         <div class="input-wrapper">
                             <input type="text" id="compareSymbol1" placeholder="Symbol 1" maxlength="6">
+                            <div id="compareSuggestions1" class="autocomplete-suggestions"></div>
                         </div>
                         <div class="input-wrapper">
                             <input type="text" id="compareSymbol2" placeholder="Symbol 2" maxlength="6">
+                            <div id="compareSuggestions2" class="autocomplete-suggestions"></div>
                         </div>
                         <div class="input-wrapper">
                             <input type="text" id="compareSymbol3" placeholder="Symbol 3 (optional)" maxlength="6">
+                            <div id="compareSuggestions3" class="autocomplete-suggestions"></div>
                         </div>
                     </div>
                     <button id="compareBtn">Compare Stocks</button>
