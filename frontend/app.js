@@ -14,6 +14,50 @@ const AppState = {
 };
 
 // ============================================
+// COMPANY NAME LOOKUP
+// ============================================
+const CompanyNames = {
+    // Fallback names for major companies (used if API fails)
+    'AAPL': 'Apple Inc.',
+    'MSFT': 'Microsoft Corporation',
+    'GOOGL': 'Alphabet Inc.',
+    'GOOG': 'Alphabet Inc.',
+    'AMZN': 'Amazon.com Inc.',
+    'META': 'Meta Platforms Inc.',
+    'TSLA': 'Tesla Inc.',
+    'NVDA': 'NVIDIA Corporation',
+
+    get(symbol) {
+        return this[symbol.toUpperCase()] || symbol;
+    },
+
+    async loadFromSP500() {
+        try {
+            console.log('Loading S&P 500 company names...');
+            const response = await fetch('https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv');
+            const csv = await response.text();
+            const lines = csv.split('\n').slice(1); // Skip header
+
+            let count = 0;
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const parts = line.split(',');
+                const symbol = parts[0]?.trim();
+                const name = parts[1]?.trim();
+
+                if (symbol && name) {
+                    this[symbol] = name;
+                    count++;
+                }
+            });
+
+            console.log(`Loaded ${count} company names from S&P 500 dataset`);
+            return true;
+        } catch (error) {
+            console.warn('Could not load S&P 500 company names:', error.message);
+            console.log('Using fallback company names');
+            return false;
+        }
 // RESPONSIVE UTILITIES
 // ============================================
 const ResponsiveManager = {
@@ -484,34 +528,82 @@ const Renderer = {
     },
 
     renderComparison(results) {
-        const successfulResults = results.filter(r => r.data && r.data['Global Quote']);
+        const successfulResults = results.filter(r => r.data && (r.data.symbol || r.data['Global Quote']));
 
         if (successfulResults.length === 0) {
             return '<span class="error">No valid data to compare</span>';
         }
 
-        const headers = ['Metric', ...successfulResults.map(r => r.symbol)];
-        const metrics = [
-            { label: 'Price', key: '05. price', format: v => `$${parseFloat(v).toFixed(2)}` },
-            { label: 'Change %', key: '10. change percent', format: v => v },
-            { label: 'Open', key: '02. open', format: v => `$${parseFloat(v).toFixed(2)}` },
-            { label: 'High', key: '03. high', format: v => `$${parseFloat(v).toFixed(2)}` },
-            { label: 'Low', key: '04. low', format: v => `$${parseFloat(v).toFixed(2)}` },
-            { label: 'Volume', key: '06. volume', format: v => parseInt(v).toLocaleString() }
-        ];
+        // Normalize data format (handle both old and new API formats)
+        const normalizedResults = successfulResults.map(r => {
+            const quote = r.data.symbol ? r.data : r.data['Global Quote'];
+            return {
+                symbol: r.symbol,
+                quote: quote,
+                price: quote.price ? parseFloat(quote.price) : parseFloat(quote['05. price']),
+                change: quote.change_percent || quote['10. change percent'],
+                open: quote.open ? parseFloat(quote.open) : parseFloat(quote['02. open']),
+                high: quote.high ? parseFloat(quote.high) : parseFloat(quote['03. high']),
+                low: quote.low ? parseFloat(quote.low) : parseFloat(quote['04. low']),
+                volume: quote.volume ? parseInt(quote.volume) : parseInt(quote['06. volume']),
+                prevClose: quote.previous_close ? parseFloat(quote.previous_close) : parseFloat(quote['08. previous close'])
+            };
+        });
 
-        let html = '<div class="comparison-table"><table><thead><tr>';
+        // Calculate momentum for each stock
+        const momentumData = normalizedResults.map(r => {
+            const priceChange = ((r.price - r.prevClose) / r.prevClose) * 100;
+            const positionInRange = ((r.price - r.low) / (r.high - r.low)) * 100;
+            let momentum, momentumClass;
+
+            if (priceChange > 1 && positionInRange > 60) {
+                momentum = '📈 Bullish';
+                momentumClass = 'positive';
+            } else if (priceChange < -1 && positionInRange < 40) {
+                momentum = '📉 Bearish';
+                momentumClass = 'negative';
+            } else {
+                momentum = '➡️ Neutral';
+                momentumClass = '';
+            }
+
+            return { symbol: r.symbol, momentum, momentumClass, priceChange };
+        });
+
+        // Momentum section
+        let html = '<div style="margin-bottom: 24px;">';
+        html += '<h3 style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">⚡ Momentum Analysis</h3>';
+        html += '<div style="display: grid; gap: 12px;">';
+
+        momentumData.forEach(m => {
+            html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(241,245,249,0.5); border: 1px solid rgba(226,232,240,0.9); border-radius: 10px;">`;
+            html += `<span style="font-weight: 600; color: #0f172a;">${m.symbol}</span>`;
+            html += `<span class="${m.momentumClass}" style="font-weight: 600;">${m.momentum}</span>`;
+            html += `</div>`;
+        });
+
+        html += '</div></div>';
+
+        // Table section
+        const headers = ['Metric', ...normalizedResults.map(r => r.symbol)];
+        html += '<div class="comparison-table"><table><thead><tr>';
         headers.forEach(h => html += `<th>${h}</th>`);
         html += '</tr></thead><tbody>';
+
+        const metrics = [
+            { label: 'Price', getValue: r => `$${r.price.toFixed(2)}` },
+            { label: 'Change %', getValue: r => r.change },
+            { label: 'Open', getValue: r => `$${r.open.toFixed(2)}` },
+            { label: 'High', getValue: r => `$${r.high.toFixed(2)}` },
+            { label: 'Low', getValue: r => `$${r.low.toFixed(2)}` },
+            { label: 'Volume', getValue: r => r.volume.toLocaleString() }
+        ];
 
         metrics.forEach(metric => {
             html += '<tr>';
             html += `<td class="metric-label">${metric.label}</td>`;
-            successfulResults.forEach(result => {
-                const quote = result.data['Global Quote'];
-                const value = quote[metric.key];
-                const formatted = value ? metric.format(value) : 'N/A';
-                html += `<td>${formatted}</td>`;
+            normalizedResults.forEach(result => {
+                html += `<td>${metric.getValue(result)}</td>`;
             });
             html += '</tr>';
         });
@@ -523,6 +615,16 @@ const Renderer = {
             html = '<div style="font-size: 11px; color: var(--muted2); margin-bottom: 8px; text-align: center;">← Scroll horizontally to see more →</div>' + html;
         }
 
+        // Add chart container
+        html += `
+            <div class="chart-container" style="margin-top: 24px;">
+                <h3 style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">📊 Price Comparison</h3>
+                <div class="chart-wrapper">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        `;
+
         // Show errors for failed fetches
         const errors = results.filter(r => r.error);
         if (errors.length > 0) {
@@ -533,7 +635,105 @@ const Renderer = {
             html += '</div>';
         }
 
+        // Store data for chart rendering
+        this._comparisonData = normalizedResults;
+
         return html;
+    },
+
+    renderComparisonChart(results) {
+        const canvas = document.getElementById('comparisonChart');
+        if (!canvas) return;
+
+        // Destroy existing chart
+        if (ChartManager.comparisonChart) {
+            ChartManager.comparisonChart.destroy();
+        }
+
+        const ctx = canvas.getContext('2d');
+        const isMobile = AppState.isMobile;
+        const fontSize = isMobile ? 9 : 11;
+
+        // Create datasets for each stock
+        const colors = ['#2563eb', '#22c55e', '#f59e0b'];
+        const datasets = results.map((r, index) => ({
+            label: r.symbol,
+            data: [r.prevClose, r.open, r.low, r.price, r.high],
+            borderColor: colors[index],
+            backgroundColor: `${colors[index]}20`,
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+            pointBackgroundColor: colors[index],
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: isMobile ? 3 : 4,
+            pointHoverRadius: isMobile ? 5 : 6
+        }));
+
+        ChartManager.comparisonChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Prev Close', 'Open', 'Low', 'Current', 'High'],
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#0f172a',
+                            font: { size: fontSize + 1, weight: '600' },
+                            padding: isMobile ? 8 : 12,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.9)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#2563eb',
+                        borderWidth: 1,
+                        padding: isMobile ? 8 : 12,
+                        titleFont: { size: fontSize + 1 },
+                        bodyFont: { size: fontSize },
+                        callbacks: {
+                            label: (context) => `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: (value) => `$${value.toFixed(2)}`,
+                            color: '#64748b',
+                            font: { size: fontSize }
+                        },
+                        grid: {
+                            color: 'rgba(226,232,240,0.5)',
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: fontSize }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
     },
 
     renderHistory() {
@@ -576,6 +776,7 @@ const Renderer = {
 const UI = {
     init() {
         document.documentElement.className = AppState.theme;
+        this.renderExampleChips();
         Renderer.renderHistory();
         Renderer.renderWatchlist();
 
@@ -637,23 +838,7 @@ const UI = {
             });
         };
 
-        // Example chips
-        document.querySelectorAll('.example-chip').forEach(chip => {
-            chip.addEventListener('click', (e) => {
-                const symbol = e.target.dataset.symbol;
-                if (symbol) this.selectSymbol(symbol);
-            });
-
-            // Add touch feedback for mobile
-            if (ResponsiveManager.isTouchDevice()) {
-                chip.addEventListener('touchstart', function() {
-                    this.style.transform = 'scale(0.95)';
-                }, { passive: true });
-                chip.addEventListener('touchend', function() {
-                    this.style.transform = '';
-                }, { passive: true });
-            }
-        });
+        // Example chips are now rendered dynamically in renderExampleChips()
 
         // Single mode input handlers
         const symbolInput = document.getElementById('symbolInput');
@@ -893,6 +1078,8 @@ const UI = {
         const compareMode = document.getElementById('compareMode');
         const singleMode = document.getElementById('singleMode');
         const modeBtn = document.getElementById('modeToggle');
+        const marketOverview = document.getElementById('marketOverview');
+        const quickFilters = document.getElementById('quickFilters');
 
         if (!compareMode || !singleMode || !modeBtn) return;
 
@@ -900,10 +1087,14 @@ const UI = {
             compareMode.style.display = 'block';
             singleMode.style.display = 'none';
             modeBtn.textContent = '← Single View';
+            if (marketOverview) marketOverview.style.display = 'grid';
+            if (quickFilters) quickFilters.style.display = 'flex';
         } else {
             compareMode.style.display = 'none';
             singleMode.style.display = 'block';
             modeBtn.textContent = '⚖️ Compare';
+            if (marketOverview) marketOverview.style.display = 'none';
+            if (quickFilters) quickFilters.style.display = 'none';
         }
     },
 
@@ -924,6 +1115,36 @@ const UI = {
             document.getElementById('symbolInput').value = symbol;
             UI.handleInput(document.getElementById('symbolInput'));
             UI.fetchStock();
+        }
+    },
+
+    renderExampleChips() {
+        const exampleSymbols = ['MSFT', 'AAPL', 'GOOGL', 'TSLA', 'NVDA'];
+        const container = document.getElementById('exampleChips');
+
+        if (container) {
+            container.innerHTML = exampleSymbols.map(symbol => {
+                const companyName = CompanyNames.get(symbol);
+                return `<span class="example-chip" data-symbol="${symbol}">${companyName}</span>`;
+            }).join('');
+
+            // Attach event listeners
+            container.querySelectorAll('.example-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    const symbol = e.target.dataset.symbol;
+                    if (symbol) this.selectSymbol(symbol);
+                });
+
+                // Add touch feedback for mobile
+                if (ResponsiveManager.isTouchDevice()) {
+                    chip.addEventListener('touchstart', function() {
+                        this.style.transform = 'scale(0.95)';
+                    }, { passive: true });
+                    chip.addEventListener('touchend', function() {
+                        this.style.transform = '';
+                    }, { passive: true });
+                }
+            });
         }
     },
 
@@ -1097,6 +1318,13 @@ const UI = {
             });
 
             resultDiv.innerHTML = Renderer.renderComparison(results);
+
+            // Render chart after DOM update
+            setTimeout(() => {
+                if (Renderer._comparisonData) {
+                    Renderer.renderComparisonChart(Renderer._comparisonData);
+                }
+            }, 100);
         } catch (error) {
             resultDiv.innerHTML = `<span class="error">${error.message}</span>`;
         } finally {
@@ -1134,7 +1362,15 @@ const UI = {
 // ============================================
 // INITIALIZATION
 // ============================================
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+    // Load company names first (non-blocking)
+    CompanyNames.loadFromSP500().then(() => {
+        // Re-render example chips with loaded company names
+        if (UI.renderExampleChips) {
+            UI.renderExampleChips();
+        }
+    });
+
     ResponsiveManager.init();
     UI.init();
 });
@@ -1292,6 +1528,7 @@ function exportWatchlist() {
 // ============================================
 const ChartManager = {
     chart: null,
+    comparisonChart: null,
 
     async renderChart(symbol, quote) {
         const container = document.getElementById('result');

@@ -134,11 +134,15 @@
         .hero-description {
             font-size: 15px;
             line-height: 1.6;
-            color: var(--muted2);
+            color: #cbd5e1;
             margin: 0 0 24px 0;
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
+        }
+
+        .hero-description em {
+            color: #94a3b8;
         }
 
         .hero-features {
@@ -149,12 +153,12 @@
         }
 
         .feature-badge {
-            background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.1);
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.15);
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 13px;
-            color: #cbd5e1;
+            color: #e2e8f0;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -1735,7 +1739,7 @@
                 </div>
 
                 <!-- Market Overview Cards -->
-                <div class="market-overview">
+                <div class="market-overview" id="marketOverview" style="display: none;">
                     <div class="market-card">
                         <div class="market-card-header">
                             <span class="market-card-title">Top Gainer</span>
@@ -1763,7 +1767,7 @@
                 </div>
 
                 <!-- Quick Filters -->
-                <div class="quick-filters">
+                <div class="quick-filters" id="quickFilters" style="display: none;">
                     <span class="filter-chip" data-category="tech"><span class="emoji">💻</span> Tech Giants</span>
                     <span class="filter-chip" data-category="finance"><span class="emoji">🏦</span> Finance</span>
                     <span class="filter-chip" data-category="energy"><span class="emoji">⚡</span> Energy</span>
@@ -1776,19 +1780,18 @@
                     <div class="history-chips" id="historyChips"></div>
                 </div>
 
-                <div class="examples">
-                    <span class="example-chip" data-symbol="MSFT">MSFT</span>
-                    <span class="example-chip" data-symbol="AAPL">AAPL</span>
-                    <span class="example-chip" data-symbol="GOOGL">GOOGL</span>
-                    <span class="example-chip" data-symbol="TSLA">TSLA</span>
-                    <span class="example-chip" data-symbol="NVDA">NVDA</span>
+                <div style="margin-bottom: 8px; font-size: 13px; color: #94a3b8; text-align: center;">
+                    👇 Click on a company to analyze or search for its ticker above
+                </div>
+                <div class="examples" id="exampleChips">
+                    <!-- Populated dynamically by JavaScript -->
                 </div>
 
                 <!-- Single Mode -->
                 <div id="singleMode">
                     <div class="search-box">
                         <div class="input-wrapper">
-                            <input type="text" id="symbolInput" placeholder="Enter ticker symbol" maxlength="6">
+                            <input type="text" id="symbolInput" placeholder="Enter ticker (e.g., AAPL, MSFT)" maxlength="6">
                             <button class="clear-btn" id="clearBtn" title="Clear">✕</button>
                         </div>
                         <button id="searchBtn">Search</button>
