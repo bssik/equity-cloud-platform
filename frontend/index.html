@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EquityCloud · Real-Time Market Data</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-weight='bold'>E</text></svg>">
     <style>
         :root {
             --bg0: #070a12;
@@ -16,6 +17,23 @@
             --accent3: #22c55e;
             --shadow: 0 18px 45px rgba(2,6,23,.35);
             --radius: 18px;
+        }
+
+        :root.light {
+            --bg0: #f8fafc;
+            --bg1: #f1f5f9;
+            --card: #ffffff;
+            --muted: #94a3b8;
+            --muted2: #64748b;
+            --shadow: 0 18px 45px rgba(15,23,42,.12);
+        }
+
+        :root.light body {
+            color: #0f172a;
+        }
+
+        :root.light .brand-text {
+            color: #475569;
         }
 
         * { box-sizing: border-box; }
@@ -77,6 +95,35 @@
             opacity: .9;
         }
 
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,.1);
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 12px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all .2s;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255,255,255,.15);
+            transform: scale(1.05);
+        }
+
+        :root.light .theme-toggle {
+            background: rgba(0,0,0,.05);
+            border-color: rgba(0,0,0,.1);
+        }
+
+        :root.light .theme-toggle:hover {
+            background: rgba(0,0,0,.1);
+        }
+
         .card {
             background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.98));
             color: #0b1220;
@@ -113,9 +160,181 @@
         }
 
         .subtitle {
-            margin: 0 0 28px;
+            margin: 0 0 16px;
             color: var(--muted2);
             font-size: 13px;
+        }
+
+        .history-section {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .history-section.visible {
+            display: block;
+        }
+
+        .history-label {
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .history-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .history-chip {
+            padding: 6px 12px;
+            background: rgba(37,99,235,.1);
+            border: 1px solid rgba(37,99,235,.3);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+
+        .history-chip:hover {
+            background: rgba(37,99,235,.2);
+            border-color: var(--accent);
+        }
+
+        .kbd-hint {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(255,255,255,.1);
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: monospace;
+            margin-left: 6px;
+        }
+
+        :root.light .kbd-hint {
+            background: rgba(0,0,0,.05);
+            border-color: rgba(0,0,0,.15);
+        }
+
+        .watchlist-card {
+            margin-top: 24px;
+            background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.98));
+            border: 1px solid rgba(226,232,240,.75);
+            border-radius: var(--radius);
+            padding: 24px;
+            display: none;
+        }
+
+        .watchlist-card.visible {
+            display: block;
+        }
+
+        .watchlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .watchlist-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .watchlist-items {
+            display: grid;
+            gap: 12px;
+        }
+
+        .watchlist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(241,245,249,.5);
+            border: 1px solid rgba(226,232,240,.9);
+            border-radius: 10px;
+            transition: all .2s;
+            cursor: pointer;
+        }
+
+        .watchlist-item:hover {
+            background: rgba(226,232,240,.7);
+            border-color: var(--accent);
+        }
+
+        .watchlist-symbol {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 14px;
+        }
+
+        .watchlist-remove {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all .2s;
+        }
+
+        .watchlist-remove:hover {
+            background: rgba(239,68,68,.1);
+            color: #ef4444;
+        }
+
+        .add-to-watchlist {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: rgba(37,99,235,.1);
+            border: 1px solid rgba(37,99,235,.3);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .add-to-watchlist:hover {
+            background: rgba(37,99,235,.2);
+            border-color: var(--accent);
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed rgba(226,232,240,.95);
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-label {
+            font-size: 10px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--muted2);
+        }
+
+        .detail-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
         }
 
         .search-box {
@@ -326,8 +545,36 @@
         }
 
         @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .theme-toggle {
+                top: 12px;
+                right: 12px;
+                padding: 8px 12px;
+                font-size: 16px;
+            }
+
             .card {
-                padding: 24px;
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+            }
+
+            .examples {
+                gap: 6px;
+            }
+
+            .example-chip {
+                font-size: 11px;
+                padding: 5px 10px;
             }
 
             .search-box {
@@ -337,10 +584,28 @@
             button {
                 width: 100%;
             }
+
+            #result {
+                padding: 16px;
+                min-height: 100px;
+            }
+
+            .quote-value {
+                font-size: 18px;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .watchlist-card {
+                padding: 16px;
+            }
         }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme (Ctrl+/)" aria-label="Toggle theme">🌓</button>
     <div class="container">
         <div class="brand">
             <div class="mark"></div>
@@ -350,7 +615,12 @@
         <div class="card">
             <div class="card-content">
                 <h1>Real-Time Market Data</h1>
-                <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure</p>
+                <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure <span class="kbd-hint" title="Press / to focus input">Press /</span></p>
+
+                <div class="history-section" id="historySection">
+                    <div class="history-label">Recent searches</div>
+                    <div class="history-chips" id="historyChips"></div>
+                </div>
 
                 <div class="examples">
                     <span class="example-chip" onclick="selectSymbol('MSFT')">MSFT</span>
@@ -373,9 +643,102 @@
                 </div>
             </div>
         </div>
+
+        <div class="watchlist-card" id="watchlistCard">
+            <div class="watchlist-header">
+                <div class="watchlist-title">📌 Watchlist</div>
+            </div>
+            <div class="watchlist-items" id="watchlistItems"></div>
+        </div>
     </div>
 
     <script>
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.className = savedTheme;
+
+        // Load and display history
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            const historyChips = document.getElementById('historyChips');
+            const historySection = document.getElementById('historySection');
+
+            if (history.length > 0) {
+                historySection.classList.add('visible');
+                historyChips.innerHTML = history.map(symbol =>
+                    `<span class="history-chip" onclick="selectSymbol('${symbol}')">${symbol}</span>`
+                ).join('');
+            } else {
+                historySection.classList.remove('visible');
+            }
+        }
+
+        function saveToHistory(symbol) {
+            let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+            history = history.filter(s => s !== symbol);
+            history.unshift(symbol);
+            history = history.slice(0, 3);
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            loadHistory();
+        }
+
+        // Watchlist functions
+        function loadWatchlist() {
+            const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            const watchlistItems = document.getElementById('watchlistItems');
+            const watchlistCard = document.getElementById('watchlistCard');
+
+            if (watchlist.length > 0) {
+                watchlistCard.classList.add('visible');
+                watchlistItems.innerHTML = watchlist.map(symbol =>
+                    `<div class="watchlist-item" onclick="selectSymbol('${symbol}')">
+                        <span class="watchlist-symbol">${symbol}</span>
+                        <button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${symbol}')" title="Remove">✕</button>
+                    </div>`
+                ).join('');
+            } else {
+                watchlistCard.classList.remove('visible');
+            }
+        }
+
+        function addToWatchlist(symbol) {
+            let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            if (!watchlist.includes(symbol)) {
+                watchlist.push(symbol);
+                localStorage.setItem('watchlist', JSON.stringify(watchlist));
+                loadWatchlist();
+            }
+        }
+
+        function removeFromWatchlist(symbol) {
+            let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            watchlist = watchlist.filter(s => s !== symbol);
+            localStorage.setItem('watchlist', JSON.stringify(watchlist));
+            loadWatchlist();
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.className;
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.className = newTheme;
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/') {
+                e.preventDefault();
+                document.getElementById('symbolInput').focus();
+            } else if (e.key === 'Escape') {
+                clearInput();
+            }
+        });
+
+        window.addEventListener('load', () => {
+            loadHistory();
+            loadWatchlist();
+        });
+
         function handleInput(input) {
             const clearBtn = document.getElementById('clearBtn');
             clearBtn.classList.toggle('visible', input.value.length > 0);
@@ -435,10 +798,21 @@
                 const quote = data['Global Quote'];
 
                 if (quote && Object.keys(quote).length > 0) {
+                    saveToHistory(symbol);
                     const price = parseFloat(quote['05. price']);
                     const change = quote['10. change percent'];
                     const isPositive = change && !change.startsWith('-');
                     const timeStr = fetchTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    const open = quote['02. open'];
+                    const high = quote['03. high'];
+                    const low = quote['04. low'];
+                    const volume = quote['06. volume'];
+                    const prevClose = quote['08. previous close'];
+                    const tradingDay = quote['07. latest trading day'];
+
+                    const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+                    const isInWatchlist = watchlist.includes(symbol);
 
                     resultDiv.innerHTML = `
                         <div class="quote-grid">
@@ -457,8 +831,19 @@
                                     ${isPositive ? '+' : ''}${change}
                                 </span>
                             </div>` : ''}
+                            
+                            <div class="details-grid">
+                                ${open ? `<div class="detail-item"><span class="detail-label">Open</span><span class="detail-value">$${parseFloat(open).toFixed(2)}</span></div>` : ''}
+                                ${high ? `<div class="detail-item"><span class="detail-label">High</span><span class="detail-value">$${parseFloat(high).toFixed(2)}</span></div>` : ''}
+                                ${low ? `<div class="detail-item"><span class="detail-label">Low</span><span class="detail-value">$${parseFloat(low).toFixed(2)}</span></div>` : ''}
+                                ${prevClose ? `<div class="detail-item"><span class="detail-label">Prev Close</span><span class="detail-value">$${parseFloat(prevClose).toFixed(2)}</span></div>` : ''}
+                                ${volume ? `<div class="detail-item"><span class="detail-label">Volume</span><span class="detail-value">${parseInt(volume).toLocaleString()}</span></div>` : ''}
+                                ${tradingDay ? `<div class="detail-item"><span class="detail-label">Trading Day</span><span class="detail-value">${tradingDay}</span></div>` : ''}
+                            </div>
+                            
                             <div class="timestamp">Last updated at ${timeStr}</div>
                         </div>
+                        ${!isInWatchlist ? `<button class="add-to-watchlist" onclick="addToWatchlist('${symbol}')">📌 Add to Watchlist</button>` : `<div class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ In Watchlist</div>`}
                     `;
                 } else if (data.Note && data.Note.includes('API call frequency')) {
                     resultDiv.innerHTML = '<span class="error">API rate limit reached. Please try again in a minute.</span>';
