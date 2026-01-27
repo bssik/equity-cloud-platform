@@ -188,9 +188,10 @@ const Autocomplete = {
         suggestionsEl.innerHTML = html;
         suggestionsEl.classList.add('visible');
 
-        // Attach click handlers
+        // Attach mousedown handlers (fires before blur event)
         suggestionsEl.querySelectorAll('.autocomplete-item').forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // Prevent blur from firing
                 this.selectItem(item.dataset.symbol);
             });
         });
