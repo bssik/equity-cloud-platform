@@ -258,7 +258,7 @@ const Renderer = {
 
                 <div class="timestamp">Last updated at ${timeStr}</div>
             </div>
-            ${!isInWatchlist ? `<button class="add-to-watchlist" onclick="UI.addToWatchlist('${symbol}')">📌 Add to Watchlist</button>` : `<div class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ In Watchlist</div>`}
+            ${!isInWatchlist ? `<button class="add-to-watchlist" data-symbol="${symbol}">📌 Add to Watchlist</button>` : `<div class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ In Watchlist</div>`}
         `;
     },
 
@@ -318,7 +318,7 @@ const Renderer = {
         if (history.length > 0) {
             historySection.classList.add('visible');
             historyChips.innerHTML = history.map(symbol =>
-                `<span class="history-chip" onclick="UI.selectSymbol('${symbol}')">${symbol}</span>`
+                `<span class="history-chip">${symbol}</span>`
             ).join('');
         } else {
             historySection.classList.remove('visible');
@@ -333,9 +333,9 @@ const Renderer = {
         if (watchlist.length > 0) {
             watchlistCard.classList.add('visible');
             watchlistItems.innerHTML = watchlist.map(symbol =>
-                `<div class="watchlist-item" onclick="UI.selectSymbol('${symbol}')">
+                `<div class="watchlist-item">
                     <span class="watchlist-symbol">${symbol}</span>
-                    <button class="watchlist-remove" onclick="event.stopPropagation(); UI.removeFromWatchlist('${symbol}')" title="Remove">✕</button>
+                    <button class="watchlist-remove" title="Remove">✕</button>
                 </div>`
             ).join('');
         } else {
@@ -353,13 +353,91 @@ const UI = {
         Renderer.renderHistory();
         Renderer.renderWatchlist();
 
+        // Event delegation for dynamic elements
+        this.attachEventListeners();
+    },
+
+    attachEventListeners() {
+        // Theme toggle
+        document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
+
+        // Example chips
+        document.querySelectorAll('.example-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                const symbol = e.target.dataset.symbol;
+                if (symbol) this.selectSymbol(symbol);
+            });
+        });
+
+        // Single mode input handlers
+        const symbolInput = document.getElementById('symbolInput');
+        const clearBtn = document.getElementById('clearBtn');
+        const searchBtn = document.getElementById('searchBtn');
+
+        symbolInput?.addEventListener('input', () => this.handleInput(symbolInput));
+        symbolInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.fetchStock();
+        });
+        clearBtn?.addEventListener('click', () => this.clearInput());
+        searchBtn?.addEventListener('click', () => this.fetchStock());
+
+        // Mode toggle
+        document.getElementById('modeToggle')?.addEventListener('click', () => this.toggleMode());
+
+        // Compare button
+        document.getElementById('compareBtn')?.addEventListener('click', () => this.compareStocks());
+
+        // Alerts modal
+        document.getElementById('alertsBtn')?.addEventListener('click', () => Alerts.openModal());
+        document.getElementById('alertsClose')?.addEventListener('click', () => Alerts.closeModal());
+        document.getElementById('addAlertBtn')?.addEventListener('click', () => Alerts.addAlert());
+        document.getElementById('alertsModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'alertsModal') Alerts.closeModal();
+        });
+
+        // Export button
+        document.getElementById('exportBtn')?.addEventListener('click', () => exportWatchlist());
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === '/') {
                 e.preventDefault();
-                document.getElementById('symbolInput').focus();
+                symbolInput?.focus();
             } else if (e.key === 'Escape') {
-                UI.clearInput();
+                this.clearInput();
+            }
+        });
+
+        // History chips delegation
+        document.getElementById('historyChips')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('history-chip')) {
+                const symbol = e.target.textContent;
+                this.selectSymbol(symbol);
+            }
+        });
+
+        // Watchlist items delegation
+        document.getElementById('watchlistItems')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('watchlist-item')) {
+                const symbol = e.target.querySelector('.watchlist-symbol')?.textContent;
+                if (symbol) this.selectSymbol(symbol);
+            } else if (e.target.classList.contains('watchlist-remove')) {
+                e.stopPropagation();
+                const symbol = e.target.closest('.watchlist-item')?.querySelector('.watchlist-symbol')?.textContent;
+                if (symbol) this.removeFromWatchlist(symbol);
+            }
+        });
+
+        // Alert list delegation
+        document.getElementById('alertList')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('alert-remove')) {
+                const alertItem = e.target.closest('.alert-item');
+                // Extract ID from data attribute or reconstruct from alerts array
+                const alerts = Storage.getAlerts();
+                const index = Array.from(alertItem.parentElement.children).indexOf(alertItem);
+                if (alerts[index]) {
+                    Alerts.removeAlert(alerts[index].id);
+                }
             }
         });
     },
@@ -446,6 +524,15 @@ const UI = {
                 Storage.saveToHistory(symbol);
                 Renderer.renderHistory();
                 resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime);
+
+                // Attach watchlist button handler after rendering
+                const addBtn = resultDiv.querySelector('.add-to-watchlist[data-symbol]');
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => {
+                        this.addToWatchlist(addBtn.dataset.symbol);
+                        this.fetchStock(); // Refresh display
+                    });
+                }
 
                 // Render chart after quote
                 await ChartManager.renderChart(symbol, quote);
@@ -563,7 +650,7 @@ const Alerts = {
                     <span class="alert-symbol">${alert.symbol}</span>
                     <span class="alert-condition">${alert.condition === 'above' ? '↑' : '↓'} $${alert.targetPrice.toFixed(2)} ${alert.triggered ? '✅ Triggered!' : ''}</span>
                 </div>
-                <button class="alert-remove" onclick="Alerts.removeAlert(${alert.id})" title="Remove">✕</button>
+                <button class="alert-remove" title="Remove">✕</button>
             </div>
         `).join('');
     },

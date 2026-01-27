@@ -1006,7 +1006,7 @@
     </style>
 </head>
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme (Ctrl+/)" aria-label="Toggle theme">🌓</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme (Ctrl+/)" aria-label="Toggle theme">🌓</button>
     <div class="container">
         <div class="brand">
             <div class="mark"></div>
@@ -1028,21 +1028,21 @@
                 </div>
 
                 <div class="examples">
-                    <span class="example-chip" onclick="selectSymbol('MSFT')">MSFT</span>
-                    <span class="example-chip" onclick="selectSymbol('AAPL')">AAPL</span>
-                    <span class="example-chip" onclick="selectSymbol('GOOGL')">GOOGL</span>
-                    <span class="example-chip" onclick="selectSymbol('TSLA')">TSLA</span>
-                    <span class="example-chip" onclick="selectSymbol('NVDA')">NVDA</span>
+                    <span class="example-chip" data-symbol="MSFT">MSFT</span>
+                    <span class="example-chip" data-symbol="AAPL">AAPL</span>
+                    <span class="example-chip" data-symbol="GOOGL">GOOGL</span>
+                    <span class="example-chip" data-symbol="TSLA">TSLA</span>
+                    <span class="example-chip" data-symbol="NVDA">NVDA</span>
                 </div>
 
                 <!-- Single Mode -->
                 <div id="singleMode">
                     <div class="search-box">
                         <div class="input-wrapper">
-                            <input type="text" id="symbolInput" placeholder="Enter ticker symbol" oninput="handleInput(this)" onkeypress="if(event.key==='Enter') fetchStock()" maxlength="6">
-                            <button class="clear-btn" id="clearBtn" onclick="clearInput()" title="Clear">✕</button>
+                            <input type="text" id="symbolInput" placeholder="Enter ticker symbol" maxlength="6">
+                            <button class="clear-btn" id="clearBtn" title="Clear">✕</button>
                         </div>
-                        <button id="searchBtn" onclick="fetchStock()">Search</button>
+                        <button id="searchBtn">Search</button>
                     </div>
 
                     <div id="result">
@@ -1075,19 +1075,19 @@
             <div class="watchlist-header">
                 <div class="watchlist-title">📌 Watchlist</div>
                 <div>
-                    <button class="alerts-btn" onclick="Alerts.openModal()" title="Price Alerts">🔔</button>
-                    <button class="export-btn" onclick="exportWatchlist()" title="Export to CSV">📥</button>
+                    <button class="alerts-btn" id="alertsBtn" title="Price Alerts">🔔</button>
+                    <button class="export-btn" id="exportBtn" title="Export to CSV">📥</button>
                 </div>
             </div>
             <div class="watchlist-items" id="watchlistItems"></div>
         </div>
 
         <!-- Price Alerts Modal -->
-        <div class="modal-overlay" id="alertsModal" onclick="if(event.target === this) Alerts.closeModal()">
+        <div class="modal-overlay" id="alertsModal">
             <div class="modal">
                 <div class="modal-header">
                     <h2 class="modal-title">🔔 Price Alerts</h2>
-                    <button class="modal-close" onclick="Alerts.closeModal()">×</button>
+                    <button class="modal-close" id="alertsClose">×</button>
                 </div>
                 <div class="alert-form">
                     <div class="form-group">
@@ -1105,319 +1105,13 @@
                         <label class="form-label">Price (USD)</label>
                         <input type="number" id="alertPrice" class="form-input" placeholder="0.00" step="0.01" min="0">
                     </div>
-                    <button onclick="Alerts.addAlert()">Add Alert</button>
+                    <button id="addAlertBtn">Add Alert</button>
                 </div>
                 <div class="alert-list" id="alertList"></div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Initialize theme
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.className = savedTheme;
-
-        // Load and display history
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-            const historyChips = document.getElementById('historyChips');
-            const historySection = document.getElementById('historySection');
-
-            if (history.length > 0) {
-                historySection.classList.add('visible');
-                historyChips.innerHTML = history.map(symbol =>
-                    `<span class="history-chip" onclick="selectSymbol('${symbol}')">${symbol}</span>`
-                ).join('');
-            } else {
-                historySection.classList.remove('visible');
-            }
-        }
-
-        function saveToHistory(symbol) {
-            let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-            history = history.filter(s => s !== symbol);
-            history.unshift(symbol);
-            history = history.slice(0, 3);
-            localStorage.setItem('searchHistory', JSON.stringify(history));
-            loadHistory();
-        }
-
-        // Watchlist functions
-        function loadWatchlist() {
-            const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-            const watchlistItems = document.getElementById('watchlistItems');
-            const watchlistCard = document.getElementById('watchlistCard');
-
-            if (watchlist.length > 0) {
-                watchlistCard.classList.add('visible');
-                watchlistItems.innerHTML = watchlist.map(symbol =>
-                    `<div class="watchlist-item" onclick="selectSymbol('${symbol}')">
-                        <span class="watchlist-symbol">${symbol}</span>
-                        <button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${symbol}')" title="Remove">✕</button>
-                    </div>`
-                ).join('');
-            } else {
-                watchlistCard.classList.remove('visible');
-            }
-        }
-
-        function addToWatchlist(symbol) {
-            let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-            if (!watchlist.includes(symbol)) {
-                watchlist.push(symbol);
-                localStorage.setItem('watchlist', JSON.stringify(watchlist));
-                loadWatchlist();
-            }
-        }
-
-        function removeFromWatchlist(symbol) {
-            let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-            watchlist = watchlist.filter(s => s !== symbol);
-            localStorage.setItem('watchlist', JSON.stringify(watchlist));
-            loadWatchlist();
-        }
-
-        function toggleTheme() {
-            const current = document.documentElement.className;
-            const newTheme = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.className = newTheme;
-            localStorage.setItem('theme', newTheme);
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === '/') {
-                e.preventDefault();
-                document.getElementById('symbolInput').focus();
-            } else if (e.key === 'Escape') {
-                clearInput();
-            }
-        });
-
-        window.addEventListener('load', () => {
-            loadHistory();
-            loadWatchlist();
-        });
-
-        function calculateSignal(quote) {
-            const price = parseFloat(quote['05. price']);
-            const high = parseFloat(quote['03. high']);
-            const low = parseFloat(quote['04. low']);
-            const prevClose = parseFloat(quote['08. previous close']);
-            const volume = parseInt(quote['06. volume']);
-
-            // 1. Volatility Check (intraday range)
-            const range = high - low;
-            const volatilityPct = (range / price) * 100;
-            let volatility, volatilityLevel;
-            if (volatilityPct < 2) {
-                volatility = 'Low';
-                volatilityLevel = 'high';
-            } else if (volatilityPct < 5) {
-                volatility = 'Medium';
-                volatilityLevel = 'medium';
-            } else {
-                volatility = 'High';
-                volatilityLevel = 'low';
-            }
-
-            // 2. Momentum Check
-            const priceChange = ((price - prevClose) / prevClose) * 100;
-            const positionInRange = ((price - low) / (high - low)) * 100;
-            let momentum;
-            if (priceChange > 1 && positionInRange > 60) {
-                momentum = '📈 Bullish';
-            } else if (priceChange < -1 && positionInRange < 40) {
-                momentum = '📉 Bearish';
-            } else {
-                momentum = '➡️ Neutral';
-            }
-
-            // 3. Liquidity Check
-            let liquidity, liquidityLevel;
-            if (volume > 5000000) {
-                liquidity = 'High';
-                liquidityLevel = 'high';
-            } else if (volume > 1000000) {
-                liquidity = 'Solid';
-                liquidityLevel = 'medium';
-            } else {
-                liquidity = 'Thin';
-                liquidityLevel = 'low';
-            }
-
-            // 4. Overall Signal
-            let signal, signalClass;
-            if (momentum.includes('Bullish') && volatility !== 'High') {
-                signal = '🚀 Trending Up';
-                signalClass = 'bullish';
-            } else if (momentum.includes('Bearish')) {
-                signal = '⚠️ Downtrend';
-                signalClass = 'bearish';
-            } else if (volatility === 'High') {
-                signal = '⚡ High Volatility';
-                signalClass = 'volatile';
-            } else {
-                signal = '😴 Quiet Trading';
-                signalClass = 'neutral';
-            }
-
-            return {
-                volatility, volatilityLevel, volatilityPct,
-                momentum,
-                liquidity, liquidityLevel,
-                signal, signalClass
-            };
-        }
-
-        function handleInput(input) {
-            const clearBtn = document.getElementById('clearBtn');
-            clearBtn.classList.toggle('visible', input.value.length > 0);
-        }
-
-        function clearInput() {
-            const input = document.getElementById('symbolInput');
-            input.value = '';
-            document.getElementById('clearBtn').classList.remove('visible');
-            input.focus();
-        }
-
-        function selectSymbol(symbol) {
-            document.getElementById('symbolInput').value = symbol;
-            handleInput(document.getElementById('symbolInput'));
-            fetchStock();
-        }
-
-        async function fetchStock() {
-            const input = document.getElementById('symbolInput').value.toUpperCase().trim();
-            const resultDiv = document.getElementById('result');
-            const searchBtn = document.getElementById('searchBtn');
-
-            // Validate input: only letters, 1-6 characters
-            const symbol = input.replace(/[^A-Z]/g, '');
-
-            if (!symbol) {
-                resultDiv.innerHTML = '<span class="loading">Please enter a valid symbol</span>';
-                return;
-            }
-
-            if (symbol.length > 6) {
-                resultDiv.innerHTML = '<span class="error">Symbol too long (max 6 characters)</span>';
-                return;
-            }
-
-            // Disable button and show spinner
-            searchBtn.disabled = true;
-            resultDiv.innerHTML = '<div class="spinner"></div>';
-
-            const fetchTime = new Date();
-
-            try {
-                const response = await fetch(`/api/quote/${symbol}`);
-
-                if (!response.ok) {
-                    if (response.status === 429) {
-                        throw new Error('Rate limit exceeded. Please wait a moment.');
-                    } else if (response.status === 500) {
-                        throw new Error('Server error. API key may be missing or invalid.');
-                    } else {
-                        throw new Error('Network error. Please check your connection.');
-                    }
-                }
-
-                const data = await response.json();
-                const quote = data['Global Quote'];
-
-                if (quote && Object.keys(quote).length > 0) {
-                    saveToHistory(symbol);
-                    const price = parseFloat(quote['05. price']);
-                    const change = quote['10. change percent'];
-                    const isPositive = change && !change.startsWith('-');
-                    const timeStr = fetchTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-                    const open = quote['02. open'];
-                    const high = quote['03. high'];
-                    const low = quote['04. low'];
-                    const volume = quote['06. volume'];
-                    const prevClose = quote['08. previous close'];
-                    const tradingDay = quote['07. latest trading day'];
-
-                    const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-                    const isInWatchlist = watchlist.includes(symbol);
-
-                    const signal = calculateSignal(quote);
-
-                    resultDiv.innerHTML = `
-                        <div class="quote-grid">
-                            <div class="quote-item">
-                                <span class="quote-label">Symbol</span>
-                                <span class="quote-value">${quote['01. symbol']}</span>
-                            </div>
-                            <div class="quote-item">
-                                <span class="quote-label">Price (USD)</span>
-                                <span class="quote-value">$${price.toFixed(2)}</span>
-                            </div>
-                            ${change ? `
-                            <div class="quote-item">
-                                <span class="quote-label">Change</span>
-                                <span class="quote-change ${isPositive ? 'positive' : 'negative'}">
-                                    ${isPositive ? '+' : ''}${change}
-                                </span>
-                            </div>` : ''}
-
-                            <div class="details-grid">
-                                ${open ? `<div class="detail-item"><span class="detail-label">Open</span><span class="detail-value">$${parseFloat(open).toFixed(2)}</span></div>` : ''}
-                                ${high ? `<div class="detail-item"><span class="detail-label">High</span><span class="detail-value">$${parseFloat(high).toFixed(2)}</span></div>` : ''}
-                                ${low ? `<div class="detail-item"><span class="detail-label">Low</span><span class="detail-value">$${parseFloat(low).toFixed(2)}</span></div>` : ''}
-                                ${prevClose ? `<div class="detail-item"><span class="detail-label">Prev Close</span><span class="detail-value">$${parseFloat(prevClose).toFixed(2)}</span></div>` : ''}
-                                ${volume ? `<div class="detail-item"><span class="detail-label">Volume</span><span class="detail-value">${parseInt(volume).toLocaleString()}</span></div>` : ''}
-                                ${tradingDay ? `<div class="detail-item"><span class="detail-label">Trading Day</span><span class="detail-value">${tradingDay}</span></div>` : ''}
-                            </div>
-
-                            <div class="signal-section">
-                                <div class="signal-header">
-                                    <span class="signal-title">⚡ MARKET SIGNAL</span>
-                                </div>
-                                <div class="signal-indicators">
-                                    <div class="signal-indicator">
-                                        <span class="signal-label">Volatility</span>
-                                        <span class="signal-value">
-                                            ${signal.volatility}
-                                            <div class="signal-bar"><div class="signal-bar-fill ${signal.volatilityLevel}" style="width: ${signal.volatilityPct > 5 ? 100 : signal.volatilityPct * 20}%"></div></div>
-                                        </span>
-                                    </div>
-                                    <div class="signal-indicator">
-                                        <span class="signal-label">Momentum</span>
-                                        <span class="signal-value">${signal.momentum}</span>
-                                    </div>
-                                    <div class="signal-indicator">
-                                        <span class="signal-label">Liquidity</span>
-                                        <span class="signal-value">
-                                            ${signal.liquidity}
-                                            <div class="signal-bar"><div class="signal-bar-fill ${signal.liquidityLevel}" style="width: ${signal.liquidityLevel === 'high' ? 100 : signal.liquidityLevel === 'medium' ? 60 : 30}%"></div></div>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="signal-badge ${signal.signalClass}">${signal.signal}</div>
-                            </div>
-
-                            <div class="timestamp">Last updated at ${timeStr}</div>
-                        </div>
-                        ${!isInWatchlist ? `<button class="add-to-watchlist" onclick="addToWatchlist('${symbol}')">📌 Add to Watchlist</button>` : `<div class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ In Watchlist</div>`}
-                    `;
-                } else if (data.Note && data.Note.includes('API call frequency')) {
-                    resultDiv.innerHTML = '<span class="error">API rate limit reached. Please try again in a minute.</span>';
-                } else {
-                    resultDiv.innerHTML = '<span class="error">Symbol not found. Check the ticker and try again.</span>';
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error">${error.message}</span>`;
-            } finally {
-                // Re-enable button
-                searchBtn.disabled = false;
-            }
-        }
-    </script>
     <script src="app.js"></script>
 </body>
 </html>
