@@ -324,6 +324,14 @@
                     <button id="searchBtn" onclick="fetchStock()">Search</button>
                 </div>
 
+                <div id="result">
+                    <span class="loading">Enter a symbol to begin</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
         function selectSymbol(symbol) {
             document.getElementById('symbolInput').value = symbol;
             fetchStock();
@@ -349,15 +357,7 @@
 
             // Disable button and show spinner
             searchBtn.disabled = true;
-            resultDiv.innerHTML = '<div class="spinner"></divim();
-            const resultDiv = document.getElementById('result');
-
-            if (!symbol) {
-                resultDiv.innerHTML = '<span class="loading">Please enter a symbol</span>';
-                return;
-            }
-
-            resultDiv.innerHTML = '<span class="loading">Querying Azure backend...</span>';
+            resultDiv.innerHTML = '<div class="spinner"></div>';
 
             try {
                 const response = await fetch(`/api/quote/${symbol}`);
