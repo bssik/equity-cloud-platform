@@ -48,7 +48,7 @@ const ResponsiveManager = {
 
     handleResize() {
         // Adjust chart if visible
-        if (ChartManager.chart) {
+        if (typeof ChartManager !== 'undefined' && ChartManager.chart) {
             ChartManager.chart.resize();
         }
 
@@ -748,6 +748,52 @@ const UI = {
                 }
             }
         });
+
+        // Quick filter chips
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                const category = e.currentTarget.dataset.category;
+                if (category) this.handleQuickFilter(category);
+            });
+
+            // Add touch feedback for mobile
+            if (ResponsiveManager.isTouchDevice()) {
+                chip.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                }, { passive: true });
+                chip.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                }, { passive: true });
+            }
+        });
+    },
+
+    handleQuickFilter(category) {
+        // Predefined stock lists for quick access
+        const filterCategories = {
+            tech: ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'TSLA'],
+            finance: ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'C'],
+            energy: ['XOM', 'CVX', 'COP', 'SLB', 'EOG', 'MPC'],
+            healthcare: ['JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'LLY'],
+            consumer: ['AMZN', 'WMT', 'HD', 'MCD', 'NKE', 'SBUX']
+        };
+
+        const symbols = filterCategories[category];
+        if (!symbols) return;
+
+        // Switch to compare mode and populate with category stocks
+        if (AppState.mode !== 'compare') {
+            this.toggleMode();
+        }
+
+        // Fill in the compare inputs
+        document.getElementById('compareSymbol1').value = symbols[0] || '';
+        document.getElementById('compareSymbol2').value = symbols[1] || '';
+        document.getElementById('compareSymbol3').value = symbols[2] || '';
+
+        // Show a hint
+        const compareResult = document.getElementById('compareResult');
+        compareResult.innerHTML = `<div class="loading">Selected ${category} stocks. Click "Compare Stocks" to analyze.</div>`;
     },
 
     toggleMode() {
@@ -810,6 +856,68 @@ const UI = {
         Renderer.renderWatchlist();
     },
 
+    updateMarketOverview(symbol, quote) {
+        try {
+            // Update market cards based on recently searched stocks
+            const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
+            const price = parseFloat(quote['05. price']);
+            const volume = parseInt(quote['06. volume']);
+
+            // Simple logic: update cards based on this stock's performance
+            const marketCards = document.querySelectorAll('.market-card');
+
+            // Exit early if cards don't exist
+            if (!marketCards || marketCards.length < 3) return;
+
+            // Get current top gainer
+            const topGainerCard = marketCards[0];
+            const topGainerChangeEl = topGainerCard?.querySelector('.market-card-change');
+            if (topGainerChangeEl) {
+                const currentGainerChange = parseFloat(topGainerChangeEl.textContent.replace(/[^0-9.-]/g, '')) || -Infinity;
+
+                if (changePercent > currentGainerChange) {
+                    const valueEl = topGainerCard.querySelector('.market-card-value');
+                    if (valueEl) valueEl.textContent = symbol;
+                    topGainerChangeEl.textContent = `+${changePercent.toFixed(2)}%`;
+                    topGainerChangeEl.classList.add('positive');
+                    topGainerChangeEl.classList.remove('negative');
+                }
+            }
+
+            // Get current top loser
+            const topLoserCard = marketCards[1];
+            const topLoserChangeEl = topLoserCard?.querySelector('.market-card-change');
+            if (topLoserChangeEl) {
+                const currentLoserChange = parseFloat(topLoserChangeEl.textContent.replace(/[^0-9.-]/g, '')) || 0;
+
+                if (changePercent < 0 && (changePercent < currentLoserChange || currentLoserChange >= 0)) {
+                    const valueEl = topLoserCard.querySelector('.market-card-value');
+                    if (valueEl) valueEl.textContent = symbol;
+                    topLoserChangeEl.textContent = `${changePercent.toFixed(2)}%`;
+                    topLoserChangeEl.classList.add('negative');
+                    topLoserChangeEl.classList.remove('positive');
+                }
+            }
+
+            // Update most active based on volume
+            const mostActiveCard = marketCards[2];
+            const mostActiveChangeEl = mostActiveCard?.querySelector('.market-card-change');
+            if (mostActiveChangeEl) {
+                const currentVolText = mostActiveChangeEl.textContent;
+                const currentVol = parseInt(currentVolText.replace(/[^0-9]/g, '')) || 0;
+
+                if (volume > currentVol) {
+                    const valueEl = mostActiveCard.querySelector('.market-card-value');
+                    if (valueEl) valueEl.textContent = symbol;
+                    mostActiveChangeEl.textContent = `Vol: ${(volume / 1000000).toFixed(1)}M`;
+                }
+            }
+        } catch (error) {
+            // Silently fail - don't break the main functionality
+            console.warn('Failed to update market overview:', error);
+        }
+    },
+
     async fetchStock() {
         const input = document.getElementById('symbolInput').value.toUpperCase().trim();
         const resultDiv = document.getElementById('result');
@@ -858,6 +966,9 @@ const UI = {
 
                 // Check price alerts
                 Alerts.checkAlerts();
+
+                // Update market overview with this stock's data
+                this.updateMarketOverview(symbol, quote);
             } else if (data.Note && data.Note.includes('API call frequency')) {
                 resultDiv.innerHTML = '<span class="error">API rate limit reached. Please try again in a minute.</span>';
             } else {
