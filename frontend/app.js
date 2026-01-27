@@ -39,6 +39,29 @@ const Storage = {
     saveTheme: (theme) => {
         localStorage.setItem('theme', theme);
         AppState.theme = theme;
+    },
+
+    getAlerts: () => JSON.parse(localStorage.getItem('priceAlerts') || '[]'),
+
+    addAlert: (alert) => {
+        const alerts = Storage.getAlerts();
+        alerts.push(alert);
+        localStorage.setItem('priceAlerts', JSON.stringify(alerts));
+    },
+
+    removeAlert: (id) => {
+        let alerts = Storage.getAlerts();
+        alerts = alerts.filter(a => a.id !== id);
+        localStorage.setItem('priceAlerts', JSON.stringify(alerts));
+    },
+
+    updateAlert: (id, updates) => {
+        let alerts = Storage.getAlerts();
+        const index = alerts.findIndex(a => a.id === id);
+        if (index !== -1) {
+            alerts[index] = { ...alerts[index], ...updates };
+            localStorage.setItem('priceAlerts', JSON.stringify(alerts));
+        }
     }
 };
 
@@ -343,17 +366,17 @@ const UI = {
 
     toggleMode() {
         AppState.mode = AppState.mode === 'single' ? 'compare' : 'single';
-        const compareSection = document.getElementById('compareSection');
-        const singleSection = document.getElementById('singleSection');
+        const compareMode = document.getElementById('compareMode');
+        const singleMode = document.getElementById('singleMode');
         const modeBtn = document.getElementById('modeToggle');
 
         if (AppState.mode === 'compare') {
-            compareSection.style.display = 'block';
-            singleSection.style.display = 'none';
+            compareMode.style.display = 'block';
+            singleMode.style.display = 'none';
             modeBtn.textContent = '← Single View';
         } else {
-            compareSection.style.display = 'none';
-            singleSection.style.display = 'block';
+            compareMode.style.display = 'none';
+            singleMode.style.display = 'block';
             modeBtn.textContent = '⚖️ Compare';
         }
     },
@@ -423,6 +446,12 @@ const UI = {
                 Storage.saveToHistory(symbol);
                 Renderer.renderHistory();
                 resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime);
+
+                // Render chart after quote
+                await ChartManager.renderChart(symbol, quote);
+
+                // Check price alerts
+                Alerts.checkAlerts();
             } else if (data.Note && data.Note.includes('API call frequency')) {
                 resultDiv.innerHTML = '<span class="error">API rate limit reached. Please try again in a minute.</span>';
             } else {
@@ -436,9 +465,9 @@ const UI = {
     },
 
     async compareStocks() {
-        const symbol1 = document.getElementById('compareInput1').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
-        const symbol2 = document.getElementById('compareInput2').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
-        const symbol3 = document.getElementById('compareInput3').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
+        const symbol1 = document.getElementById('compareSymbol1').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
+        const symbol2 = document.getElementById('compareSymbol2').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
+        const symbol3 = document.getElementById('compareSymbol3').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
 
         const symbols = [symbol1, symbol2, symbol3].filter(s => s.length > 0);
 
@@ -471,3 +500,257 @@ const UI = {
 // INITIALIZATION
 // ============================================
 window.addEventListener('load', () => UI.init());
+
+// ============================================
+// PRICE ALERTS SYSTEM
+// ============================================
+const Alerts = {
+    openModal() {
+        document.getElementById('alertsModal').classList.add('visible');
+        this.renderAlerts();
+    },
+
+    closeModal() {
+        document.getElementById('alertsModal').classList.remove('visible');
+        document.getElementById('alertSymbol').value = '';
+        document.getElementById('alertPrice').value = '';
+    },
+
+    addAlert() {
+        const symbol = document.getElementById('alertSymbol').value.toUpperCase().trim();
+        const condition = document.getElementById('alertCondition').value;
+        const price = parseFloat(document.getElementById('alertPrice').value);
+
+        if (!symbol || !price || price <= 0) {
+            alert('Please enter a valid symbol and price');
+            return;
+        }
+
+        const alert = {
+            id: Date.now(),
+            symbol,
+            condition,
+            targetPrice: price,
+            triggered: false,
+            createdAt: new Date().toISOString()
+        };
+
+        Storage.addAlert(alert);
+        this.renderAlerts();
+
+        // Clear form
+        document.getElementById('alertSymbol').value = '';
+        document.getElementById('alertPrice').value = '';
+    },
+
+    removeAlert(id) {
+        Storage.removeAlert(id);
+        this.renderAlerts();
+    },
+
+    renderAlerts() {
+        const alerts = Storage.getAlerts();
+        const alertList = document.getElementById('alertList');
+
+        if (alerts.length === 0) {
+            alertList.innerHTML = '<div style="text-align: center; color: var(--muted2); padding: 20px; font-size: 13px;">No alerts set. Add one above!</div>';
+            return;
+        }
+
+        alertList.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.triggered ? 'triggered' : ''}">
+                <div class="alert-info">
+                    <span class="alert-symbol">${alert.symbol}</span>
+                    <span class="alert-condition">${alert.condition === 'above' ? '↑' : '↓'} $${alert.targetPrice.toFixed(2)} ${alert.triggered ? '✅ Triggered!' : ''}</span>
+                </div>
+                <button class="alert-remove" onclick="Alerts.removeAlert(${alert.id})" title="Remove">✕</button>
+            </div>
+        `).join('');
+    },
+
+    async checkAlerts() {
+        const alerts = Storage.getAlerts().filter(a => !a.triggered);
+
+        for (const alert of alerts) {
+            try {
+                const data = await API.fetchQuote(alert.symbol);
+                const quote = data['Global Quote'];
+
+                if (quote && quote['05. price']) {
+                    const currentPrice = parseFloat(quote['05. price']);
+                    let shouldTrigger = false;
+
+                    if (alert.condition === 'above' && currentPrice >= alert.targetPrice) {
+                        shouldTrigger = true;
+                    } else if (alert.condition === 'below' && currentPrice <= alert.targetPrice) {
+                        shouldTrigger = true;
+                    }
+
+                    if (shouldTrigger) {
+                        Storage.updateAlert(alert.id, { triggered: true });
+                        this.showNotification(alert, currentPrice);
+                    }
+                }
+            } catch (error) {
+                console.error(`Error checking alert for ${alert.symbol}:`, error);
+            }
+        }
+    },
+
+    showNotification(alert, currentPrice) {
+        const msg = `🔔 Alert: ${alert.symbol} is ${alert.condition} $${alert.targetPrice.toFixed(2)}! Current price: $${currentPrice.toFixed(2)}`;
+
+        // Browser notification if supported
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('EquityCloud Price Alert', { body: msg, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%232563eb"/><text x="50" y="70" font-size="60" text-anchor="middle" fill="white" font-weight="bold">E</text></svg>' });
+        }
+
+        // Fallback to alert
+        alert(msg);
+    }
+};
+
+// Request notification permission on load
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+
+// Check alerts every 5 minutes
+setInterval(() => Alerts.checkAlerts(), 5 * 60 * 1000);
+
+// ============================================
+// CSV EXPORT FUNCTIONALITY
+// ============================================
+function exportWatchlist() {
+    const watchlist = Storage.getWatchlist();
+
+    if (watchlist.length === 0) {
+        alert('Watchlist is empty. Add some stocks first!');
+        return;
+    }
+
+    // CSV header
+    let csv = 'Symbol,Added Date\n';
+
+    // CSV rows
+    watchlist.forEach(symbol => {
+        csv += `${symbol},${new Date().toLocaleDateString()}\n`;
+    });
+
+    // Create download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `equitycloud-watchlist-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+
+// ============================================
+// CHART VISUALIZATION
+// ============================================
+const ChartManager = {
+    chart: null,
+
+    async renderChart(symbol, quote) {
+        const container = document.getElementById('result');
+        const canvasId = 'priceChart';
+
+        // Check if canvas already exists
+        let canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            const chartHtml = `
+                <div class="chart-container">
+                    <div class="chart-wrapper">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', chartHtml);
+            canvas = document.getElementById(canvasId);
+        }
+
+        // Destroy existing chart
+        if (this.chart) {
+            this.chart.destroy();
+        }
+
+        // Extract data points
+        const open = parseFloat(quote['02. open']);
+        const high = parseFloat(quote['03. high']);
+        const low = parseFloat(quote['04. low']);
+        const price = parseFloat(quote['05. price']);
+        const prevClose = parseFloat(quote['08. previous close']);
+
+        // Create simple price chart
+        const ctx = canvas.getContext('2d');
+        this.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Prev Close', 'Open', 'Low', 'Current', 'High'],
+                datasets: [{
+                    label: `${symbol} Price Movement`,
+                    data: [prevClose, open, low, price, high],
+                    borderColor: price >= prevClose ? '#22c55e' : '#ef4444',
+                    backgroundColor: price >= prevClose ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#2563eb',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.9)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#2563eb',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: (context) => `$${context.parsed.y.toFixed(2)}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: (value) => `$${value.toFixed(2)}`,
+                            color: '#64748b',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: 'rgba(226,232,240,0.5)',
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+};
