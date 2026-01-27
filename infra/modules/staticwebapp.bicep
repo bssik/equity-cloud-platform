@@ -40,9 +40,6 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
 @description('The default hostname of the deployed Static Web App')
 output defaultHostname string = staticWebApp.properties.defaultHostname
 
-@description('The deployment token for CI/CD integration')
-output deploymentToken string = staticWebApp.listSecrets().properties.apiKey
-
 @description('The fully qualified resource ID')
 output resourceId string = staticWebApp.id
 

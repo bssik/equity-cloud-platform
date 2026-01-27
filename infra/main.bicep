@@ -53,8 +53,5 @@ module staticWebApp './modules/staticwebapp.bicep' = {
 @description('The default hostname of the Static Web App')
 output staticWebAppUrl string = staticWebApp.outputs.defaultHostname
 
-@description('The deployment token for GitHub Actions integration')
-output deploymentToken string = staticWebApp.outputs.deploymentToken
-
 @description('The resource ID of the Static Web App')
 output staticWebAppId string = staticWebApp.outputs.resourceId

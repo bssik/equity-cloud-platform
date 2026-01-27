@@ -3,7 +3,102 @@
 // ============================================
 const AppState = {
     mode: 'single', // 'single' or 'compare'
-    theme: localStorage.getItem('theme') || 'dark'
+    theme: localStorage.getItem('theme') || 'dark',
+    rateLimitQueue: [],
+    isProcessingQueue: false,
+    lastApiCall: 0,
+    minApiInterval: 12000 // 12 seconds between API calls
+};
+
+// ============================================
+// CACHE MANAGEMENT
+// ============================================
+const Cache = {
+    TTL: 60000, // 60 seconds cache validity
+
+    set(symbol, data) {
+        const cacheEntry = {
+            data,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + this.TTL
+        };
+        localStorage.setItem(`quote_cache_${symbol}`, JSON.stringify(cacheEntry));
+    },
+
+    get(symbol) {
+        const cached = localStorage.getItem(`quote_cache_${symbol}`);
+        if (!cached) return null;
+
+        const entry = JSON.parse(cached);
+        if (Date.now() > entry.expiresAt) {
+            // Cache expired, remove it
+            this.remove(symbol);
+            return null;
+        }
+
+        return entry;
+    },
+
+    remove(symbol) {
+        localStorage.removeItem(`quote_cache_${symbol}`);
+    },
+
+    clear() {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith('quote_cache_')) {
+                localStorage.removeItem(key);
+            }
+        });
+    },
+
+    getAge(symbol) {
+        const cached = this.get(symbol);
+        if (!cached) return null;
+        return Math.floor((Date.now() - cached.timestamp) / 1000); // Age in seconds
+    }
+};
+
+// ============================================
+// URL STATE MANAGEMENT
+// ============================================
+const URLState = {
+    getParams() {
+        const params = new URLSearchParams(window.location.search);
+        const compareRaw = params.get('compare');
+        const compareSymbols = compareRaw
+            ? compareRaw.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+        return {
+            symbol: params.get('symbol'),
+            compareRaw,
+            compareSymbols
+        };
+    },
+
+    setSymbol(symbol) {
+        const url = new URL(window.location);
+        url.searchParams.set('symbol', symbol);
+        url.searchParams.delete('compare');
+        window.history.pushState({}, '', url);
+    },
+
+    setCompare(symbols) {
+        const list = Array.isArray(symbols)
+            ? symbols
+            : String(symbols).split(',').map(s => s.trim()).filter(Boolean);
+        const url = new URL(window.location);
+        url.searchParams.delete('symbol');
+        url.searchParams.set('compare', list.join(','));
+        window.history.pushState({}, '', url);
+    },
+
+    clear() {
+        const url = new URL(window.location);
+        url.searchParams.delete('symbol');
+        url.searchParams.delete('compare');
+        window.history.pushState({}, '', url);
+    }
 };
 
 // ============================================
@@ -66,10 +161,27 @@ const Storage = {
 };
 
 // ============================================
-// API CLIENT
+// API CLIENT WITH QUEUE AND CACHE
 // ============================================
 const API = {
-    async fetchQuote(symbol) {
+    async fetchQuote(symbol, useCache = true) {
+        // Check cache first
+        if (useCache) {
+            const cached = Cache.get(symbol);
+            if (cached) {
+                console.log(`Using cached data for ${symbol} (age: ${Cache.getAge(symbol)}s)`);
+                return cached.data;
+            }
+        }
+
+        // Respect rate limiting
+        const timeSinceLastCall = Date.now() - AppState.lastApiCall;
+        if (timeSinceLastCall < AppState.minApiInterval) {
+            const waitTime = AppState.minApiInterval - timeSinceLastCall;
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+
+        AppState.lastApiCall = Date.now();
         const response = await fetch(`/api/quote/${symbol}`);
 
         if (!response.ok) {
@@ -82,7 +194,14 @@ const API = {
             }
         }
 
-        return response.json();
+        const data = await response.json();
+
+        // Cache the result
+        if (data['Global Quote'] && Object.keys(data['Global Quote']).length > 0) {
+            Cache.set(symbol, data);
+        }
+
+        return data;
     },
 
     async fetchMultiple(symbols, onProgress) {
@@ -90,21 +209,39 @@ const API = {
         const delay = 12000; // 12 seconds between calls (5 per minute = safe)
 
         for (let i = 0; i < symbols.length; i++) {
+            const symbol = symbols[i];
+
+            // Check cache first
+            const cached = Cache.get(symbol);
+            if (cached) {
+                onProgress && onProgress(i, symbols.length, symbol, true);
+                results.push({ symbol, data: cached.data, error: null, cached: true });
+                continue;
+            }
+
             try {
-                onProgress && onProgress(i, symbols.length, symbols[i]);
-                const data = await API.fetchQuote(symbols[i]);
-                results.push({ symbol: symbols[i], data, error: null });
+                onProgress && onProgress(i, symbols.length, symbol, false);
+                const data = await API.fetchQuote(symbol, false); // Already checked cache
+                results.push({ symbol, data, error: null, cached: false });
 
                 // Add delay between requests (except for the last one)
                 if (i < symbols.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
             } catch (error) {
-                results.push({ symbol: symbols[i], data: null, error: error.message });
+                results.push({ symbol, data: null, error: error.message, cached: false });
             }
         }
 
         return results;
+    },
+
+    getNextCallTime() {
+        const timeSinceLastCall = Date.now() - AppState.lastApiCall;
+        if (timeSinceLastCall >= AppState.minApiInterval) {
+            return 0;
+        }
+        return Math.ceil((AppState.minApiInterval - timeSinceLastCall) / 1000);
     }
 };
 
@@ -185,7 +322,7 @@ const SignalAnalyzer = {
 // RENDERING
 // ============================================
 const Renderer = {
-    renderSingleQuote(quote, symbol, fetchTime) {
+    renderSingleQuote(quote, symbol, fetchTime, isCached = false) {
         const price = parseFloat(quote['05. price']);
         const change = quote['10. change percent'];
         const isPositive = change && !change.startsWith('-');
@@ -202,11 +339,15 @@ const Renderer = {
         const isInWatchlist = watchlist.includes(symbol);
         const signal = SignalAnalyzer.calculate(quote);
 
+        // Cache age badge
+        const cacheAgeSec = isCached ? (Cache.getAge(symbol) ?? 0) : 0;
+        const cacheBadge = isCached ? `<span class="cache-badge" title="From cache, ${cacheAgeSec}s old">⚡ Cached (${cacheAgeSec}s)</span>` : '';
+
         return `
             <div class="quote-grid">
                 <div class="quote-item">
                     <span class="quote-label">Symbol</span>
-                    <span class="quote-value">${quote['01. symbol']}</span>
+                    <span class="quote-value">${quote['01. symbol']} ${cacheBadge}</span>
                 </div>
                 <div class="quote-item">
                     <span class="quote-label">Price (USD)</span>
@@ -355,11 +496,45 @@ const UI = {
 
         // Event delegation for dynamic elements
         this.attachEventListeners();
+
+        // Restore state from URL on page load
+        const params = URLState.getParams();
+        if (params.compareSymbols.length > 1) {
+            AppState.mode = 'compare';
+            this.applyModeUI();
+            const [s1, s2, s3] = params.compareSymbols;
+            const el1 = document.getElementById('compareSymbol1');
+            const el2 = document.getElementById('compareSymbol2');
+            const el3 = document.getElementById('compareSymbol3');
+            if (el1) el1.value = (s1 || '').toUpperCase();
+            if (el2) el2.value = (s2 || '').toUpperCase();
+            if (el3) el3.value = (s3 || '').toUpperCase();
+            this.compareStocks();
+        } else if (params.symbol) {
+            AppState.mode = 'single';
+            this.applyModeUI();
+            const symbolInput = document.getElementById('symbolInput');
+            if (symbolInput) symbolInput.value = params.symbol.toUpperCase();
+            this.fetchStock();
+        } else {
+            this.applyModeUI();
+        }
+
+        // Update rate limit display periodically
+        this.updateRateLimitDisplay();
+        setInterval(() => this.updateRateLimitDisplay(), 1000);
     },
 
     attachEventListeners() {
         // Theme toggle
         document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
+
+        const forceUppercase = (el) => {
+            if (!el) return;
+            el.addEventListener('input', () => {
+                el.value = el.value.toUpperCase();
+            });
+        };
 
         // Example chips
         document.querySelectorAll('.example-chip').forEach(chip => {
@@ -387,6 +562,11 @@ const UI = {
         // Compare button
         document.getElementById('compareBtn')?.addEventListener('click', () => this.compareStocks());
 
+        // Compare inputs
+        forceUppercase(document.getElementById('compareSymbol1'));
+        forceUppercase(document.getElementById('compareSymbol2'));
+        forceUppercase(document.getElementById('compareSymbol3'));
+
         // Alerts modal
         document.getElementById('alertsBtn')?.addEventListener('click', () => Alerts.openModal());
         document.getElementById('alertsClose')?.addEventListener('click', () => Alerts.closeModal());
@@ -394,6 +574,9 @@ const UI = {
         document.getElementById('alertsModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'alertsModal') Alerts.closeModal();
         });
+
+        // Alerts inputs
+        forceUppercase(document.getElementById('alertSymbol'));
 
         // Export button
         document.getElementById('exportBtn')?.addEventListener('click', () => exportWatchlist());
@@ -444,9 +627,15 @@ const UI = {
 
     toggleMode() {
         AppState.mode = AppState.mode === 'single' ? 'compare' : 'single';
+        this.applyModeUI();
+    },
+
+    applyModeUI() {
         const compareMode = document.getElementById('compareMode');
         const singleMode = document.getElementById('singleMode');
         const modeBtn = document.getElementById('modeToggle');
+
+        if (!compareMode || !singleMode || !modeBtn) return;
 
         if (AppState.mode === 'compare') {
             compareMode.style.display = 'block';
@@ -517,13 +706,18 @@ const UI = {
         const fetchTime = new Date();
 
         try {
-            const data = await API.fetchQuote(symbol);
+            const cachedBefore = Cache.get(symbol);
+            const data = await API.fetchQuote(symbol, true); // Use cache
+            const isCached = !!cachedBefore;
             const quote = data['Global Quote'];
 
             if (quote && Object.keys(quote).length > 0) {
                 Storage.saveToHistory(symbol);
                 Renderer.renderHistory();
-                resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime);
+                resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime, isCached);
+
+                // Update URL state
+                URLState.setSymbol(symbol);
 
                 // Attach watchlist button handler after rendering
                 const addBtn = resultDiv.querySelector('.add-to-watchlist[data-symbol]');
@@ -567,11 +761,15 @@ const UI = {
         const compareBtn = document.getElementById('compareBtn');
 
         compareBtn.disabled = true;
-        resultDiv.innerHTML = '<div class="compare-progress">Fetching data (this may take ~12s per symbol to avoid rate limits)...</div>';
+        resultDiv.innerHTML = '<div class="compare-progress">Fetching data...</div>';
+
+        // Update URL state
+        URLState.setCompare(symbols);
 
         try {
-            const results = await API.fetchMultiple(symbols, (index, total, symbol) => {
-                resultDiv.innerHTML = `<div class="compare-progress">Fetching ${symbol}... (${index + 1}/${total})</div>`;
+            const results = await API.fetchMultiple(symbols, (index, total, symbol, cached) => {
+                const status = cached ? '⚡ (cached)' : '(fetching...)';
+                resultDiv.innerHTML = `<div class="compare-progress">Loading ${symbol} ${status} (${index + 1}/${total})</div>`;
             });
 
             resultDiv.innerHTML = Renderer.renderComparison(results);
@@ -579,6 +777,32 @@ const UI = {
             resultDiv.innerHTML = `<span class="error">${error.message}</span>`;
         } finally {
             compareBtn.disabled = false;
+        }
+    },
+
+    updateRateLimitDisplay() {
+        const nextCallTime = API.getNextCallTime();
+        const statusEl = document.getElementById('rateLimitStatus');
+
+        if (!statusEl) {
+            // Create status element if it doesn't exist
+            const container = document.querySelector('.container');
+            if (container) {
+                const statusDiv = document.createElement('div');
+                statusDiv.id = 'rateLimitStatus';
+                statusDiv.className = 'rate-limit-status';
+                container.insertBefore(statusDiv, container.firstChild);
+            }
+        }
+
+        const status = document.getElementById('rateLimitStatus');
+        if (status) {
+            if (nextCallTime > 0) {
+                status.textContent = `⏱️ Next API call available in ${nextCallTime}s`;
+                status.style.display = 'block';
+            } else {
+                status.style.display = 'none';
+            }
         }
     }
 };

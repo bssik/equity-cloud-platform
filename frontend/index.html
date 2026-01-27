@@ -942,6 +942,41 @@
             transform: none !important;
         }
 
+        .rate-limit-status {
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(226,232,240,.9);
+            background: rgba(241,245,249,.9);
+            color: var(--muted2);
+            font-size: 13px;
+        }
+
+        :root.dark .rate-limit-status {
+            border-color: rgba(255,255,255,.12);
+            background: rgba(255,255,255,.06);
+            color: rgba(255,255,255,.8);
+        }
+
+        .cache-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(37,99,235,.25);
+            background: rgba(37,99,235,.08);
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        :root.dark .cache-badge {
+            border-color: rgba(96,165,250,.35);
+            background: rgba(96,165,250,.12);
+            color: rgba(147,197,253,.95);
+        }
+
         @media (hover: hover) {
             button:hover {
                 transform: translateY(-2px);
@@ -1022,7 +1057,7 @@
                 <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure <span class="kbd-hint" title="Press / to focus input">Press /</span></p>
 
                 <div class="mode-toggle">
-                    <button class="mode-btn" id="modeToggle" onclick="UI.toggleMode()">⚖️ Compare Mode</button>
+                    <button class="mode-btn" id="modeToggle">⚖️ Compare Mode</button>
                 </div>
 
                 <div class="history-section" id="historySection">
@@ -1057,16 +1092,16 @@
                 <div id="compareMode" style="display: none;">
                     <div class="compare-inputs">
                         <div class="input-wrapper">
-                            <input type="text" id="compareSymbol1" placeholder="Symbol 1" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                            <input type="text" id="compareSymbol1" placeholder="Symbol 1" maxlength="6">
                         </div>
                         <div class="input-wrapper">
-                            <input type="text" id="compareSymbol2" placeholder="Symbol 2" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                            <input type="text" id="compareSymbol2" placeholder="Symbol 2" maxlength="6">
                         </div>
                         <div class="input-wrapper">
-                            <input type="text" id="compareSymbol3" placeholder="Symbol 3 (optional)" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                            <input type="text" id="compareSymbol3" placeholder="Symbol 3 (optional)" maxlength="6">
                         </div>
                     </div>
-                    <button id="compareBtn" onclick="UI.compareStocks()">Compare Stocks</button>
+                    <button id="compareBtn">Compare Stocks</button>
 
                     <div id="compareProgress"></div>
                     <div id="compareResult"></div>
@@ -1095,7 +1130,7 @@
                 <div class="alert-form">
                     <div class="form-group">
                         <label class="form-label">Symbol</label>
-                        <input type="text" id="alertSymbol" class="form-input" placeholder="e.g., AAPL" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                        <input type="text" id="alertSymbol" class="form-input" placeholder="e.g., AAPL" maxlength="6">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Condition</label>
