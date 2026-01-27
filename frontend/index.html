@@ -904,9 +904,9 @@
         }
 
         .research-panel-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
         .research-panel-close {
@@ -1902,8 +1902,36 @@
             min-height: 32px;
             display: inline-flex;
             align-items: center;
+            gap: 6px;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+        }
+
+        .mover-chip {
+            flex-direction: row;
+            gap: 8px;
+        }
+
+        .mover-label {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .mover-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .mover-change {
+            font-weight: 700;
+            font-size: 11px;
+            padding: 2px 6px;
+            background: rgba(0,0,0,.05);
+            border-radius: 4px;
+        }
+
+        :root.dark .mover-change {
+            background: rgba(0,0,0,.2);
         }
 
         :root.dark .example-chip {
@@ -1912,15 +1940,26 @@
             color: #cbd5e1;
         }
 
+        :root.dark .mover-name {
+            color: var(--text-primary);
+        }
+
         .example-chip:hover {
             background: rgba(226,232,240,.95);
             border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .example-chip:hover .mover-name {
             color: var(--accent);
         }
 
         :root.dark .example-chip:hover {
             background: rgba(37,99,235,.25);
             border-color: var(--accent2);
+        }
+
+        :root.dark .example-chip:hover .mover-name {
             color: #7dd3fc;
         }
 
@@ -2100,6 +2139,20 @@
             .example-chip {
                 font-size: 11px;
                 padding: 5px 10px;
+                gap: 4px;
+            }
+
+            .mover-label {
+                font-size: 12px;
+            }
+
+            .mover-name {
+                font-size: 11px;
+            }
+
+            .mover-change {
+                font-size: 10px;
+                padding: 2px 4px;
             }
 
             .search-box {
@@ -2447,7 +2500,7 @@
                 </div>
 
                 <div class="chip-hint">
-                    👇 Click to search • <strong>Ctrl+Click</strong> for Quick Research Panel
+                    � Top Gainers • ❄️ Top Losers • Click to search • <strong>Ctrl+Click</strong> for Quick Research
                 </div>
                 <div class="examples" id="exampleChips">
                     <!-- Populated dynamically by JavaScript -->

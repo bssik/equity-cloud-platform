@@ -395,6 +395,44 @@ const Cache = {
 };
 
 // ============================================
+// MARKET MOVERS STORAGE (Week 2: Data Ingestion)
+// ============================================
+const MarketMovers = {
+    TTL: 300000, // 5 minutes cache for market movers data
+    STORAGE_KEY: 'market_movers',
+
+    set(winners, losers) {
+        const entry = {
+            winners,
+            losers,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + this.TTL
+        };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(entry));
+        console.log('Market movers stored:', { winners: winners.length, losers: losers.length });
+    },
+
+    get() {
+        const cached = localStorage.getItem(this.STORAGE_KEY);
+        if (!cached) return null;
+
+        const entry = JSON.parse(cached);
+        if (Date.now() > entry.expiresAt) {
+            // Cache expired, remove it
+            localStorage.removeItem(this.STORAGE_KEY);
+            return null;
+        }
+
+        console.log('Using cached market movers (age: ' + Math.floor((Date.now() - entry.timestamp) / 1000) + 's)');
+        return entry;
+    },
+
+    clear() {
+        localStorage.removeItem(this.STORAGE_KEY);
+    }
+};
+
+// ============================================
 // URL STATE MANAGEMENT
 // ============================================
 const URLState = {
@@ -1584,56 +1622,149 @@ const UI = {
     },
 
     renderExampleChips() {
+        const container = document.getElementById('exampleChips');
+        if (!container) {
+            console.error('exampleChips container not found!');
+            return;
+        }
+
+        // Show loading state
+        container.innerHTML = '<span style="color: var(--text-tertiary); font-size: 13px;">Loading market movers...</span>';
+
+        // Try to get cached market movers first
+        const cached = MarketMovers.get();
+        if (cached) {
+            this.renderMarketMoversChips(cached.winners, cached.losers);
+            return;
+        }
+
+        // Fetch fresh market movers data
+        this.fetchMarketMovers();
+    },
+
+    async fetchMarketMovers() {
+        const watchlist = [
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'JPM', 'V', 'JNJ',
+            'WMT', 'PG', 'MA', 'HD', 'DIS', 'NFLX', 'PYPL', 'INTC', 'CSCO', 'ADBE'
+        ];
+
+        try {
+            console.log('Fetching market data for 20 major companies...');
+            const results = [];
+
+            // Fetch quotes in batches to respect rate limiting
+            for (const symbol of watchlist) {
+                try {
+                    const data = await API.fetchQuote(symbol, true);
+                    const quote = data.symbol ? data : data['Global Quote'];
+
+                    if (quote && quote.symbol) {
+                        const changePercent = parseFloat((quote.change_percent || quote['10. change percent'] || '0').replace('%', ''));
+                        results.push({
+                            symbol: quote.symbol || symbol,
+                            name: CompanyNames.get(symbol),
+                            changePercent: changePercent,
+                            price: parseFloat(quote.price || quote['05. price'] || 0)
+                        });
+                    }
+                } catch (error) {
+                    console.warn(`Failed to fetch ${symbol}:`, error.message);
+                }
+
+                // Add small delay between requests to avoid overwhelming the API
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Sort by performance
+            const sorted = results.sort((a, b) => b.changePercent - a.changePercent);
+
+            // Get top 5 winners and losers
+            const winners = sorted.slice(0, 5);
+            const losers = sorted.slice(-5).reverse();
+
+            // Store for future use
+            MarketMovers.set(winners, losers);
+
+            // Render the chips
+            this.renderMarketMoversChips(winners, losers);
+
+        } catch (error) {
+            console.error('Failed to fetch market movers:', error);
+            // Fallback to static list
+            this.renderStaticChips();
+        }
+    },
+
+    renderMarketMoversChips(winners, losers) {
+        const container = document.getElementById('exampleChips');
+        if (!container) return;
+
+        const movers = [...winners, ...losers];
+
+        container.innerHTML = movers.map(mover => {
+            const isPositive = mover.changePercent >= 0;
+            const sign = isPositive ? '+' : '';
+            const color = isPositive ? 'var(--success)' : 'var(--error)';
+            const label = winners.includes(mover) ? '🔥' : '❄️';
+
+            return `<span class="example-chip mover-chip" data-symbol="${mover.symbol}">
+                <span class="mover-label">${label}</span>
+                <span class="mover-name">${mover.name}</span>
+                <span class="mover-change" style="color: ${color}">${sign}${mover.changePercent.toFixed(2)}%</span>
+            </span>`;
+        }).join('');
+
+        // Attach event listeners
+        this.attachChipListeners(container);
+    },
+
+    renderStaticChips() {
         const exampleSymbols = ['MSFT', 'AAPL', 'GOOGL', 'TSLA', 'NVDA'];
         const container = document.getElementById('exampleChips');
-
-        console.log('renderExampleChips called, container:', container);
 
         if (container) {
             container.innerHTML = exampleSymbols.map(symbol => {
                 const companyName = CompanyNames.get(symbol);
-                console.log(`Rendering ${symbol} as ${companyName}`);
                 return `<span class="example-chip" data-symbol="${symbol}">${companyName}</span>`;
             }).join('');
 
-            console.log('Example chips rendered:', container.innerHTML);
+            this.attachChipListeners(container);
+        }
+    },
 
-            // Attach event listeners
-            container.querySelectorAll('.example-chip').forEach(chip => {
-                chip.addEventListener('click', (e) => {
-                    const symbol = e.target.dataset.symbol;
-                    if (symbol) {
-                        // Ctrl+click (or Cmd+click on Mac) opens research panel
-                        if (e.ctrlKey || e.metaKey) {
-                            e.preventDefault();
-                            console.log('Ctrl+Click detected, opening research panel for', symbol);
-                            this.openResearchPanel(symbol);
-                        } else {
-                            console.log('Regular click detected, selecting symbol', symbol);
-                            this.selectSymbol(symbol);
-                        }
+    attachChipListeners(container) {
+        container.querySelectorAll('.example-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                const symbol = e.currentTarget.dataset.symbol;
+                if (symbol) {
+                    // Ctrl+click (or Cmd+click on Mac) opens research panel
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        console.log('Ctrl+Click detected, opening research panel for', symbol);
+                        this.openResearchPanel(symbol);
+                    } else {
+                        console.log('Regular click detected, selecting symbol', symbol);
+                        this.selectSymbol(symbol);
                     }
-                });
-
-                // Long press on mobile opens research panel
-                if (ResponsiveManager.isTouchDevice()) {
-                    let pressTimer;
-                    chip.addEventListener('touchstart', function(e) {
-                        this.style.transform = 'scale(0.95)';
-                        pressTimer = setTimeout(() => {
-                            const symbol = e.target.dataset.symbol;
-                            if (symbol) UI.openResearchPanel(symbol);
-                        }, 500);
-                    }, { passive: true });
-                    chip.addEventListener('touchend', function() {
-                        this.style.transform = '';
-                        clearTimeout(pressTimer);
-                    }, { passive: true });
                 }
             });
-        } else {
-            console.error('exampleChips container not found!');
-        }
+
+            // Long press on mobile opens research panel
+            if (ResponsiveManager.isTouchDevice()) {
+                let pressTimer;
+                chip.addEventListener('touchstart', function(e) {
+                    this.style.transform = 'scale(0.95)';
+                    pressTimer = setTimeout(() => {
+                        const symbol = e.currentTarget.dataset.symbol;
+                        if (symbol) UI.openResearchPanel(symbol);
+                    }, 500);
+                }, { passive: true });
+                chip.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                    clearTimeout(pressTimer);
+                }, { passive: true });
+            }
+        });
     },
 
     toggleTheme() {
@@ -1852,7 +1983,12 @@ const UI = {
         const title = document.getElementById('researchPanelTitle');
         const content = document.getElementById('researchPanelContent');
 
-        title.textContent = `${symbol} Research`;
+        // Get company name if available
+        const companyName = CompanyNames.get(symbol);
+        const titleHTML = companyName
+            ? `<div style="font-size: 18px; font-weight: 700; color: var(--accent);">${symbol} Research</div><div style="font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-top: 2px;">${companyName}</div>`
+            : `<div style="font-size: 18px; font-weight: 700; color: var(--accent);">${symbol} Research</div>`;
+        title.innerHTML = titleHTML;
         content.innerHTML = '<div class="spinner"></div>';
         panel.classList.add('visible');
 
