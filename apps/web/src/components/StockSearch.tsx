@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { fetchQuote } from '@/lib/api';
 import { StockQuote } from '@/types/stock';
+import NewsList from './NewsList';
 
 export default function StockSearch() {
   const [symbol, setSymbol] = useState('');
@@ -103,6 +104,9 @@ export default function StockSearch() {
           </div>
         </div>
       )}
+
+      {/* News List */}
+      {quote && <NewsList symbol={quote.symbol} />}
     </div>
   );
 }

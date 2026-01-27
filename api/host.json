@@ -11,5 +11,18 @@
   "extensionBundle": {
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[4.0.0, 5.0.0)"
+  },
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    }
+  },
+  "cors": {
+    "allowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:4280",
+      "https://black-stone-0e8040d03.6.azurestaticapps.net"
+    ],
+    "supportCredentials": false
   }
 }
