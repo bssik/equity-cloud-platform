@@ -38,7 +38,11 @@ class StockService:
                 symbol=quote_data.get("01. symbol", symbol),
                 price=float(quote_data.get("05. price", 0.0)),
                 change_percent=quote_data.get("10. change percent", "0%"),
-                volume=quote_data.get("06. volume", "0")
+                volume=quote_data.get("06. volume", "0"),
+                open=float(quote_data.get("02. open", 0.0)),
+                high=float(quote_data.get("03. high", 0.0)),
+                low=float(quote_data.get("04. low", 0.0)),
+                previous_close=float(quote_data.get("08. previous close", 0.0))
             )
 
         except requests.exceptions.RequestException as e:

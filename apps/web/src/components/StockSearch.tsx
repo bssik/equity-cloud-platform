@@ -98,7 +98,7 @@ export default function StockSearch() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Open</p>
               <p className="text-lg text-gray-900 dark:text-white">
-                ${parseFloat(quote.open).toFixed(2)}
+                ${quote.open.toFixed(2)}
               </p>
             </div>
           </div>

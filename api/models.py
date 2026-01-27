@@ -6,6 +6,10 @@ class StockQuote(BaseModel):
     price: float = Field(..., description="Current trading price")
     change_percent: str = Field(..., description="Percentage change with sign")
     volume: Optional[str] = Field(None, description="Trading volume")
+    open: Optional[float] = Field(None, description="Opening price")
+    high: Optional[float] = Field(None, description="Day high")
+    low: Optional[float] = Field(None, description="Day low")
+    previous_close: Optional[float] = Field(None, description="Previous closing price")
     cached: bool = Field(False, description="Whether data was served from cache")
 
 class AIAnalysisRequest(BaseModel):

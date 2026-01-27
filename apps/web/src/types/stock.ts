@@ -3,10 +3,10 @@ export interface StockQuote {
   price: number;
   change_percent: string;
   volume: string;
-  open: string;
-  high: string;
-  low: string;
-  previous_close: string;
+  open: number;
+  high: number;
+  low: number;
+  previous_close: number;
 }
 
 export interface NewsArticle {
