@@ -70,7 +70,8 @@
         }
 
         .container {
-            width: min(580px, 94vw);
+            width: min(90vw, 1200px);
+            max-width: 94vw;
             position: relative;
             z-index: 1;
         }
@@ -507,10 +508,12 @@
 
         .comparison-table {
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .comparison-table table {
-            width: 100%;
+            min-width: 100%;
+            width: max-content;
             border-collapse: collapse;
             font-size: 13px;
         }
