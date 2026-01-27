@@ -337,6 +337,227 @@
             color: #0f172a;
         }
 
+        .signal-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(37,99,235,.05), rgba(6,182,212,.05));
+            border: 1px solid rgba(37,99,235,.15);
+            border-radius: 12px;
+        }
+
+        .signal-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .signal-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: .05em;
+        }
+
+        .signal-indicators {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .signal-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .signal-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--muted2);
+        }
+
+        .signal-value {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .signal-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            width: 100%;
+            text-align: center;
+        }
+
+        .signal-badge.bullish {
+            background: rgba(34,197,94,.15);
+            color: var(--accent3);
+            border: 1px solid rgba(34,197,94,.3);
+        }
+
+        .signal-badge.bearish {
+            background: rgba(239,68,68,.15);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,.3);
+        }
+
+        .signal-badge.neutral {
+            background: rgba(100,116,139,.15);
+            color: var(--muted2);
+            border: 1px solid rgba(100,116,139,.3);
+        }
+
+        .signal-badge.volatile {
+            background: rgba(245,158,11,.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245,158,11,.3);
+        }
+
+        .signal-bar {
+            width: 60px;
+            height: 6px;
+            background: rgba(226,232,240,.5);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .signal-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .3s ease;
+        }
+
+        .signal-bar-fill.high {
+            background: var(--accent3);
+        }
+
+        .signal-bar-fill.medium {
+            background: #f59e0b;
+        }
+
+        .signal-bar-fill.low {
+            background: #ef4444;
+        }
+
+        .mode-toggle {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .mode-btn {
+            padding: 10px 20px;
+            background: rgba(37,99,235,.1);
+            border: 1px solid rgba(37,99,235,.3);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .mode-btn:hover {
+            background: rgba(37,99,235,.2);
+            border-color: var(--accent);
+        }
+
+        #compareSection {
+            display: none;
+        }
+
+        .compare-inputs {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .compare-input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .compare-input-row label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted2);
+            min-width: 30px;
+        }
+
+        .compare-input-row input {
+            flex: 1;
+        }
+
+        #compareResult {
+            margin-top: 20px;
+        }
+
+        .comparison-table {
+            overflow-x: auto;
+        }
+
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(226,232,240,.5);
+        }
+
+        .comparison-table th {
+            background: rgba(241,245,249,.5);
+            font-weight: 600;
+            color: #0f172a;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: .08em;
+        }
+
+        .comparison-table td.metric-label {
+            font-weight: 600;
+            color: var(--muted2);
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(241,245,249,.3);
+        }
+
+        .compare-progress {
+            text-align: center;
+            color: var(--muted2);
+            font-size: 13px;
+            padding: 40px 20px;
+        }
+
+        .comparison-errors {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(239,68,68,.1);
+            border: 1px solid rgba(239,68,68,.3);
+            border-radius: 8px;
+        }
+
+        .error-item {
+            font-size: 12px;
+            color: #ef4444;
+            margin: 4px 0;
+        }
+
         .search-box {
             display: flex;
             gap: 10px;
@@ -617,6 +838,10 @@
                 <h1>Real-Time Market Data</h1>
                 <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure <span class="kbd-hint" title="Press / to focus input">Press /</span></p>
 
+                <div class="mode-toggle">
+                    <button class="mode-btn" id="modeToggle" onclick="UI.toggleMode()">⚖️ Compare Mode</button>
+                </div>
+
                 <div class="history-section" id="historySection">
                     <div class="history-label">Recent searches</div>
                     <div class="history-chips" id="historyChips"></div>
@@ -630,16 +855,38 @@
                     <span class="example-chip" onclick="selectSymbol('NVDA')">NVDA</span>
                 </div>
 
-                <div class="search-box">
-                    <div class="input-wrapper">
-                        <input type="text" id="symbolInput" placeholder="Enter ticker symbol" oninput="handleInput(this)" onkeypress="if(event.key==='Enter') fetchStock()" maxlength="6">
-                        <button class="clear-btn" id="clearBtn" onclick="clearInput()" title="Clear">✕</button>
+                <!-- Single Mode -->
+                <div id="singleMode">
+                    <div class="search-box">
+                        <div class="input-wrapper">
+                            <input type="text" id="symbolInput" placeholder="Enter ticker symbol" oninput="handleInput(this)" onkeypress="if(event.key==='Enter') fetchStock()" maxlength="6">
+                            <button class="clear-btn" id="clearBtn" onclick="clearInput()" title="Clear">✕</button>
+                        </div>
+                        <button id="searchBtn" onclick="fetchStock()">Search</button>
                     </div>
-                    <button id="searchBtn" onclick="fetchStock()">Search</button>
+
+                    <div id="result">
+                        <span class="loading">Enter a symbol to begin</span>
+                    </div>
                 </div>
 
-                <div id="result">
-                    <span class="loading">Enter a symbol to begin</span>
+                <!-- Compare Mode -->
+                <div id="compareMode" style="display: none;">
+                    <div class="compare-inputs">
+                        <div class="input-wrapper">
+                            <input type="text" id="compareSymbol1" placeholder="Symbol 1" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="input-wrapper">
+                            <input type="text" id="compareSymbol2" placeholder="Symbol 2" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="input-wrapper">
+                            <input type="text" id="compareSymbol3" placeholder="Symbol 3 (optional)" maxlength="6" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                    </div>
+                    <button id="compareBtn" onclick="UI.compareStocks()">Compare Stocks</button>
+
+                    <div id="compareProgress"></div>
+                    <div id="compareResult"></div>
                 </div>
             </div>
         </div>
@@ -739,6 +986,77 @@
             loadWatchlist();
         });
 
+        function calculateSignal(quote) {
+            const price = parseFloat(quote['05. price']);
+            const high = parseFloat(quote['03. high']);
+            const low = parseFloat(quote['04. low']);
+            const prevClose = parseFloat(quote['08. previous close']);
+            const volume = parseInt(quote['06. volume']);
+
+            // 1. Volatility Check (intraday range)
+            const range = high - low;
+            const volatilityPct = (range / price) * 100;
+            let volatility, volatilityLevel;
+            if (volatilityPct < 2) {
+                volatility = 'Low';
+                volatilityLevel = 'high';
+            } else if (volatilityPct < 5) {
+                volatility = 'Medium';
+                volatilityLevel = 'medium';
+            } else {
+                volatility = 'High';
+                volatilityLevel = 'low';
+            }
+
+            // 2. Momentum Check
+            const priceChange = ((price - prevClose) / prevClose) * 100;
+            const positionInRange = ((price - low) / (high - low)) * 100;
+            let momentum;
+            if (priceChange > 1 && positionInRange > 60) {
+                momentum = '📈 Bullish';
+            } else if (priceChange < -1 && positionInRange < 40) {
+                momentum = '📉 Bearish';
+            } else {
+                momentum = '➡️ Neutral';
+            }
+
+            // 3. Liquidity Check
+            let liquidity, liquidityLevel;
+            if (volume > 5000000) {
+                liquidity = 'High';
+                liquidityLevel = 'high';
+            } else if (volume > 1000000) {
+                liquidity = 'Solid';
+                liquidityLevel = 'medium';
+            } else {
+                liquidity = 'Thin';
+                liquidityLevel = 'low';
+            }
+
+            // 4. Overall Signal
+            let signal, signalClass;
+            if (momentum.includes('Bullish') && volatility !== 'High') {
+                signal = '🚀 Trending Up';
+                signalClass = 'bullish';
+            } else if (momentum.includes('Bearish')) {
+                signal = '⚠️ Downtrend';
+                signalClass = 'bearish';
+            } else if (volatility === 'High') {
+                signal = '⚡ High Volatility';
+                signalClass = 'volatile';
+            } else {
+                signal = '😴 Quiet Trading';
+                signalClass = 'neutral';
+            }
+
+            return {
+                volatility, volatilityLevel, volatilityPct,
+                momentum,
+                liquidity, liquidityLevel,
+                signal, signalClass
+            };
+        }
+
         function handleInput(input) {
             const clearBtn = document.getElementById('clearBtn');
             clearBtn.classList.toggle('visible', input.value.length > 0);
@@ -803,7 +1121,7 @@
                     const change = quote['10. change percent'];
                     const isPositive = change && !change.startsWith('-');
                     const timeStr = fetchTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    
+
                     const open = quote['02. open'];
                     const high = quote['03. high'];
                     const low = quote['04. low'];
@@ -813,6 +1131,8 @@
 
                     const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
                     const isInWatchlist = watchlist.includes(symbol);
+
+                    const signal = calculateSignal(quote);
 
                     resultDiv.innerHTML = `
                         <div class="quote-grid">
@@ -831,7 +1151,7 @@
                                     ${isPositive ? '+' : ''}${change}
                                 </span>
                             </div>` : ''}
-                            
+
                             <div class="details-grid">
                                 ${open ? `<div class="detail-item"><span class="detail-label">Open</span><span class="detail-value">$${parseFloat(open).toFixed(2)}</span></div>` : ''}
                                 ${high ? `<div class="detail-item"><span class="detail-label">High</span><span class="detail-value">$${parseFloat(high).toFixed(2)}</span></div>` : ''}
@@ -840,7 +1160,34 @@
                                 ${volume ? `<div class="detail-item"><span class="detail-label">Volume</span><span class="detail-value">${parseInt(volume).toLocaleString()}</span></div>` : ''}
                                 ${tradingDay ? `<div class="detail-item"><span class="detail-label">Trading Day</span><span class="detail-value">${tradingDay}</span></div>` : ''}
                             </div>
-                            
+
+                            <div class="signal-section">
+                                <div class="signal-header">
+                                    <span class="signal-title">⚡ MARKET SIGNAL</span>
+                                </div>
+                                <div class="signal-indicators">
+                                    <div class="signal-indicator">
+                                        <span class="signal-label">Volatility</span>
+                                        <span class="signal-value">
+                                            ${signal.volatility}
+                                            <div class="signal-bar"><div class="signal-bar-fill ${signal.volatilityLevel}" style="width: ${signal.volatilityPct > 5 ? 100 : signal.volatilityPct * 20}%"></div></div>
+                                        </span>
+                                    </div>
+                                    <div class="signal-indicator">
+                                        <span class="signal-label">Momentum</span>
+                                        <span class="signal-value">${signal.momentum}</span>
+                                    </div>
+                                    <div class="signal-indicator">
+                                        <span class="signal-label">Liquidity</span>
+                                        <span class="signal-value">
+                                            ${signal.liquidity}
+                                            <div class="signal-bar"><div class="signal-bar-fill ${signal.liquidityLevel}" style="width: ${signal.liquidityLevel === 'high' ? 100 : signal.liquidityLevel === 'medium' ? 60 : 30}%"></div></div>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="signal-badge ${signal.signalClass}">${signal.signal}</div>
+                            </div>
+
                             <div class="timestamp">Last updated at ${timeStr}</div>
                         </div>
                         ${!isInWatchlist ? `<button class="add-to-watchlist" onclick="addToWatchlist('${symbol}')">📌 Add to Watchlist</button>` : `<div class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ In Watchlist</div>`}
@@ -858,5 +1205,6 @@
             }
         }
     </script>
+    <script src="app.js"></script>
 </body>
 </html>
