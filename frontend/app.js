@@ -81,6 +81,9 @@ const Autocomplete = {
 
         if (!input || !suggestions) return;
 
+        // Store the input element ID for later reference
+        suggestions.dataset.inputId = inputId;
+
         // Input event - show suggestions as user types
         input.addEventListener('input', (e) => {
             this.handleInput(e.target, suggestions);
@@ -208,6 +211,17 @@ const Autocomplete = {
             // Trigger input event to update UI (e.g., show clear button)
             const event = new Event('input', { bubbles: true });
             this.activeInput.dispatchEvent(event);
+
+            // Auto-trigger search for the main symbolInput (single mode)
+            // For compare mode inputs, just populate the field
+            if (this.activeInput.id === 'symbolInput' && typeof UI !== 'undefined') {
+                // Small delay to ensure the input value is fully set
+                setTimeout(() => {
+                    if (typeof UI.fetchStock === 'function') {
+                        UI.fetchStock();
+                    }
+                }, 50);
+            }
         }
     },
 
@@ -1256,6 +1270,7 @@ const UI = {
         const symbolInput = document.getElementById('symbolInput');
         const clearBtn = document.getElementById('clearBtn');
         const searchBtn = document.getElementById('searchBtn');
+        const researchBtn = document.getElementById('researchBtn');
 
         symbolInput?.addEventListener('input', () => this.handleInput(symbolInput));
         symbolInput?.addEventListener('keypress', (e) => {
@@ -1268,6 +1283,7 @@ const UI = {
         });
         clearBtn?.addEventListener('click', () => this.clearInput());
         searchBtn?.addEventListener('click', () => this.fetchStock());
+        researchBtn?.addEventListener('click', () => this.openResearchFromInput());
 
         // Mode toggle
         document.getElementById('modeToggle')?.addEventListener('click', () => this.toggleMode());
@@ -1376,6 +1392,42 @@ const UI = {
 
         // Research panel
         document.getElementById('researchPanelClose')?.addEventListener('click', () => this.closeResearchPanel());
+    },
+
+    resolveSymbolFromInput(rawInput) {
+        const raw = String(rawInput || '').trim();
+        if (!raw) return null;
+
+        // Fast-path: looks like a ticker
+        const ticker = raw.toUpperCase().replace(/[^A-Z]/g, '');
+        if (ticker && ticker.length <= 6) return ticker;
+
+        // Fallback: treat as company name and pick the top autocomplete match
+        if (typeof Autocomplete !== 'undefined' && typeof Autocomplete.findMatches === 'function') {
+            const matches = Autocomplete.findMatches(raw);
+            if (matches && matches.length > 0 && matches[0].symbol) {
+                return String(matches[0].symbol).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
+            }
+        }
+
+        return null;
+    },
+
+    openResearchFromInput() {
+        const inputEl = document.getElementById('symbolInput');
+        const symbol = this.resolveSymbolFromInput(inputEl?.value);
+
+        if (!symbol) {
+            // Keep UX consistent: show feedback in the main result box
+            const resultDiv = document.getElementById('result');
+            if (resultDiv) {
+                resultDiv.innerHTML = '<span class="loading">Please enter a valid symbol or company name</span>';
+            }
+            inputEl?.focus();
+            return;
+        }
+
+        this.openResearchPanel(symbol);
     },
 
     refreshCurrentView() {
@@ -1667,15 +1719,10 @@ const UI = {
         const input = document.getElementById('symbolInput').value.trim();
         const resultDiv = document.getElementById('result');
         const searchBtn = document.getElementById('searchBtn');
-        const symbol = input.toUpperCase().replace(/[^A-Z]/g, '');
+        const symbol = this.resolveSymbolFromInput(input);
 
         if (!symbol) {
             resultDiv.innerHTML = '<span class="loading">Please enter a valid symbol or company name</span>';
-            return;
-        }
-
-        if (symbol.length > 6) {
-            resultDiv.innerHTML = '<span class="error">Symbol too long (max 6 characters)</span>';
             return;
         }
 
@@ -1879,7 +1926,7 @@ const UI = {
                 ${signal.smaSignal ? `
                 <div class="research-section">
                     <div class="research-section-title">📊 SMA Position</div>
-                    <div style="font-size: 12px; color: #0f172a; margin-bottom: 8px;">
+                    <div style="font-size: 12px; color: inherit; margin-bottom: 8px;">
                         ${signal.smaSignal.position || 'N/A'}
                     </div>
                     ${signal.smaSignal.crossEvent ? `<div style="font-size: 11px; font-weight: 600; color: ${signal.smaSignal.crossClass === 'golden' ? 'var(--accent3)' : '#ef4444'}; margin-bottom: 8px;">${signal.smaSignal.crossEvent}</div>` : ''}
@@ -1891,7 +1938,7 @@ const UI = {
                 ${signal.volumeSignal ? `
                 <div class="research-section">
                     <div class="research-section-title">🔊 Volume Analysis</div>
-                    <div style="font-size: 12px; color: #0f172a; margin-bottom: 4px;">
+                    <div style="font-size: 12px; color: inherit; margin-bottom: 4px;">
                         ${signal.volumeSignal.description}
                     </div>
                     ${signal.volumeSignal.avgVolume > 0 ? `<div style="font-size: 11px; color: var(--muted2);">Ratio: ${signal.volumeSignal.volumeRatio.toFixed(2)}x (${(signal.volumeSignal.avgVolume / 1000000).toFixed(1)}M avg)</div>` : ''}
@@ -1900,7 +1947,7 @@ const UI = {
 
                 <div class="research-section">
                     <div class="research-section-title">⚡ Market Signal</div>
-                    <div style="font-size: 12px; color: #0f172a;">
+                    <div style="font-size: 12px; color: inherit;">
                         <div style="margin-bottom: 6px;"><strong>Signal:</strong> ${signal.signal}</div>
                         <div style="margin-bottom: 6px;"><strong>Momentum:</strong> ${signal.momentum}</div>
                         <div style="margin-bottom: 6px;"><strong>Volatility:</strong> ${signal.volatility}</div>

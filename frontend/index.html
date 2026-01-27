@@ -112,6 +112,10 @@
             color: #cbd5e1;
         }
 
+        :root.light .brand {
+            color: #475569;
+        }
+
         .hero-section {
             background: linear-gradient(135deg, rgba(37,99,235,.1), rgba(6,182,212,.08));
             border: 1px solid rgba(226,232,240,.2);
@@ -141,8 +145,16 @@
             margin-right: auto;
         }
 
+        :root.light .hero-description {
+            color: #475569;
+        }
+
         .hero-description em {
             color: #94a3b8;
+        }
+
+        :root.light .hero-description em {
+            color: #64748b;
         }
 
         .hero-features {
@@ -162,6 +174,12 @@
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        :root.light .feature-badge {
+            background: rgba(15,23,42,.06);
+            border: 1px solid rgba(15,23,42,.15);
+            color: #475569;
         }
 
         @media (max-width: 768px) {
@@ -425,6 +443,11 @@
             display: none;
         }
 
+        :root.dark .watchlist-card {
+            background: linear-gradient(180deg, var(--card), rgba(15,23,42,.98));
+            border: 1px solid rgba(148,163,184,.3);
+        }
+
         .watchlist-card.visible {
             display: block;
         }
@@ -440,6 +463,10 @@
             font-size: 16px;
             font-weight: 600;
             color: #0f172a;
+        }
+
+        :root.dark .watchlist-title {
+            color: #e2e8f0;
         }
 
         .watchlist-items {
@@ -468,6 +495,10 @@
             font-weight: 600;
             color: #0f172a;
             font-size: 14px;
+        }
+
+        :root.dark .watchlist-symbol {
+            color: #e2e8f0;
         }
 
         .watchlist-remove {
@@ -553,6 +584,10 @@
             color: #0f172a;
         }
 
+        :root.dark .detail-value {
+            color: #e2e8f0;
+        }
+
         .sma-section {
             margin-top: 20px;
             padding: 16px;
@@ -573,6 +608,10 @@
             font-weight: 600;
             color: #0f172a;
             letter-spacing: .05em;
+        }
+
+        :root.dark .sma-title {
+            color: #e2e8f0;
         }
 
         .sma-cross {
@@ -622,6 +661,10 @@
             font-size: 13px;
             font-weight: 600;
             color: #0f172a;
+        }
+
+        :root.dark .sma-value {
+            color: #e2e8f0;
         }
 
         .sma-distance {
@@ -830,10 +873,15 @@
         }
 
         .research-stat {
-            background: rgba(241,245,249,.5);
-            border: 1px solid rgba(226,232,240,.5);
+            background: rgba(15,23,42,.65);
+            border: 1px solid rgba(148,163,184,.18);
             border-radius: 8px;
             padding: 12px;
+        }
+
+        :root.light .research-stat {
+            background: rgba(241,245,249,.92);
+            border: 1px solid rgba(226,232,240,.95);
         }
 
         .research-stat-label {
@@ -847,7 +895,7 @@
         .research-stat-value {
             font-size: 16px;
             font-weight: 700;
-            color: #0f172a;
+            color: inherit;
         }
 
         .research-section {
@@ -1152,6 +1200,10 @@
             margin-bottom: 4px;
         }
 
+        :root.dark .market-card-value {
+            color: #e2e8f0;
+        }
+
         .market-card-change {
             font-size: 12px;
             font-weight: 600;
@@ -1348,6 +1400,12 @@
             box-shadow: 0 20px 60px rgba(0,0,0,.5);
         }
 
+        :root.dark .modal {
+            background: linear-gradient(180deg, var(--card), rgba(15,23,42,.98));
+            color: #e2e8f0;
+            border: 1px solid rgba(148,163,184,.3);
+        }
+
         @media (max-width: 768px) {
             .modal {
                 width: calc(100vw - 32px);
@@ -1370,6 +1428,10 @@
             color: #0f172a;
         }
 
+        :root.dark .modal-title {
+            color: #e2e8f0;
+        }
+
         .modal-close {
             background: none;
             border: none;
@@ -1389,6 +1451,11 @@
         .modal-close:hover {
             background: rgba(0,0,0,.05);
             color: #0f172a;
+        }
+
+        :root.dark .modal-close:hover {
+            background: rgba(255,255,255,.08);
+            color: #e2e8f0;
         }
 
         .alert-form {
@@ -1457,6 +1524,10 @@
             font-weight: 600;
             color: #0f172a;
             font-size: 14px;
+        }
+
+        :root.dark .alert-symbol {
+            color: #e2e8f0;
         }
 
         .alert-condition {
@@ -1528,6 +1599,12 @@
             transition: all .2s ease;
         }
 
+        :root.dark input {
+            background: rgba(15,23,42,.5);
+            color: #e2e8f0;
+            border: 1px solid rgba(148,163,184,.3);
+        }
+
         .clear-btn {
             position: absolute;
             right: 12px;
@@ -1581,9 +1658,25 @@
             touch-action: manipulation;
         }
 
+        .research-btn {
+            background: rgba(139,92,246,.16);
+            border: 1px solid rgba(139,92,246,.35);
+            color: #c4b5fd;
+            box-shadow: none;
+        }
+
+        :root.light .research-btn {
+            color: #6d28d9;
+        }
+
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(37,99,235,.45);
+        }
+
+        .research-btn:hover {
+            background: rgba(139,92,246,.22);
+            box-shadow: 0 8px 20px rgba(139,92,246,.18);
         }
 
         button:active {
@@ -1600,6 +1693,11 @@
             max-width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+        }
+
+        :root.dark #result {
+            background: rgba(15,23,42,.7);
+            border: 1px solid rgba(148,163,184,.3);
         }
 
         #result > * {
@@ -1656,6 +1754,10 @@
             flex-wrap: wrap;
             justify-content: flex-end;
             gap: 8px;
+        }
+
+        :root.dark .quote-value {
+            color: #e2e8f0;
         }
 
         .quote-change {
@@ -1725,10 +1827,22 @@
             touch-action: manipulation;
         }
 
+        :root.dark .example-chip {
+            background: rgba(15,23,42,.6);
+            border: 1px solid rgba(148,163,184,.3);
+            color: #94a3b8;
+        }
+
         .example-chip:hover {
             background: rgba(226,232,240,.95);
             border-color: var(--accent);
             color: var(--accent);
+        }
+
+        :root.dark .example-chip:hover {
+            background: rgba(37,99,235,.2);
+            border-color: var(--accent);
+            color: var(--accent2);
         }
 
         button:disabled {
@@ -2129,6 +2243,25 @@
             color: #7c3aed;
         }
 
+        .chip-hint {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .chip-hint strong {
+            color: #8b5cf6;
+        }
+
+        :root.light .chip-hint {
+            color: #64748b;
+        }
+
+        :root.light .chip-hint strong {
+            color: #7c3aed;
+        }
+
         @media (max-width: 600px) {
             .hint-box {
                 font-size: 11px;
@@ -2234,8 +2367,8 @@
                     <div class="history-chips" id="historyChips"></div>
                 </div>
 
-                <div style="margin-bottom: 8px; font-size: 13px; color: #94a3b8; text-align: center;">
-                    👇 Click to search • <strong style="color: #8b5cf6;">Ctrl+Click</strong> for Quick Research Panel
+                <div class="chip-hint">
+                    👇 Click to search • <strong>Ctrl+Click</strong> for Quick Research Panel
                 </div>
                 <div class="examples" id="exampleChips">
                     <!-- Populated dynamically by JavaScript -->
@@ -2256,6 +2389,7 @@
                             <div id="symbolSuggestions" class="autocomplete-suggestions"></div>
                         </div>
                         <button id="searchBtn">Search</button>
+                        <button id="researchBtn" class="research-btn" title="Open Quick Research Panel">Research</button>
                     </div>
 
                     <div id="result">
