@@ -177,7 +177,7 @@ const Autocomplete = {
         const html = matches.map((match, index) => `
             <div class="autocomplete-item" data-symbol="${match.symbol}" data-index="${index}">
                 <span class="autocomplete-symbol">${match.symbol}</span>
-                <span class="autocomplete-name">${match.name}</span>
+                <span class="autocomplete-name">(${match.name})</span>
             </div>
         `).join('');
 

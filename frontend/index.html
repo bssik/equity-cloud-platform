@@ -361,8 +361,8 @@
             transition: all .15s;
             border-bottom: 1px solid rgba(226,232,240,.1);
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 6px;
         }
 
         .autocomplete-item:last-child {
@@ -375,18 +375,24 @@
         }
 
         .autocomplete-symbol {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--accent);
-            font-size: 13px;
+            font-size: 14px;
+            flex-shrink: 0;
         }
 
         .autocomplete-name {
-            font-size: 11px;
-            color: var(--muted2);
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 200px;
+            flex: 1;
+        }
+
+        :root.light .autocomplete-name {
+            color: #475569;
         }
 
         .autocomplete-no-results {
@@ -401,8 +407,12 @@
                 max-height: 180px;
             }
 
+            .autocomplete-symbol {
+                font-size: 13px;
+            }
+
             .autocomplete-name {
-                max-width: 120px;
+                font-size: 11px;
             }
         }
 
