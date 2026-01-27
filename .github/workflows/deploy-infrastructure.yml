@@ -1,0 +1,74 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy Bicep Infrastructure
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        uses: azure/arm-deploy@v2
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: ${{ secrets.AZURE_RG_NAME }}
+          template: ./infra/main.bicep
+          parameters: >
+            environment=${{ inputs.environment || 'dev' }}
+            alphaVantageApiKey=${{ secrets.ALPHA_VANTAGE_API_KEY }}
+            finnhubApiKey=${{ secrets.FINNHUB_API_KEY }}
+          failOnStdErr: false
+          deploymentName: 'equitycloud-${{ github.run_number }}'
+
+      - name: Get Deployment Outputs
+        id: outputs
+        run: |
+          outputs=$(az deployment group show \
+            --resource-group ${{ secrets.AZURE_RG_NAME }} \
+            --name equitycloud-${{ github.run_number }} \
+            --query properties.outputs \
+            --output json)
+          echo "Deployment outputs:"
+          echo "$outputs" | jq
+
+          functionAppUrl=$(echo "$outputs" | jq -r '.functionAppUrl.value')
+          echo "functionAppUrl=$functionAppUrl" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "### 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment || 'dev' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Function App:** ${{ steps.outputs.outputs.functionAppUrl }}" >> $GITHUB_STEP_SUMMARY

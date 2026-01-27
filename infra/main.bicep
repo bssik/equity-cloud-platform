@@ -21,12 +21,22 @@ param location string = resourceGroup().location
 @description('Name prefix for all resources following CAF standards')
 param projectName string = 'equitycloud'
 
+@description('Alpha Vantage API Key')
+@secure()
+param alphaVantageApiKey string
+
+@description('Finnhub API Key')
+@secure()
+param finnhubApiKey string
+
 // =====================================================
 // Naming Variables
 // =====================================================
 
 var regionAbbreviation = 'weu'
 var staticWebAppName = 'stapp-${projectName}-${environment}-${regionAbbreviation}'
+var functionAppName = 'func-${projectName}-${environment}-${regionAbbreviation}'
+var storageAccountName = 'st${projectName}${environment}${regionAbbreviation}'
 
 // =====================================================
 // Resources
@@ -46,6 +56,23 @@ module staticWebApp './modules/staticwebapp.bicep' = {
   }
 }
 
+module functionApp './modules/functionapp.bicep' = {
+  name: 'deploy-function-app'
+  params: {
+    name: functionAppName
+    location: location
+    sku: 'Y1'
+    storageAccountName: storageAccountName
+    alphaVantageApiKey: alphaVantageApiKey
+    finnhubApiKey: finnhubApiKey
+    tags: {
+      Environment: environment
+      Project: 'EquityCloud'
+      ManagedBy: 'Bicep'
+    }
+  }
+}
+
 // =====================================================
 // Outputs
 // =====================================================
@@ -55,3 +82,9 @@ output staticWebAppUrl string = staticWebApp.outputs.defaultHostname
 
 @description('The resource ID of the Static Web App')
 output staticWebAppId string = staticWebApp.outputs.resourceId
+
+@description('The Function App URL')
+output functionAppUrl string = functionApp.outputs.functionAppUrl
+
+@description('The Function App name')
+output functionAppName string = functionApp.outputs.functionAppName

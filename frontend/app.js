@@ -580,6 +580,23 @@ const API = {
             return 0;
         }
         return Math.ceil((AppState.minApiInterval - timeSinceLastCall) / 1000);
+    },
+
+    async fetchNews(symbol) {
+        try {
+            const response = await fetch(`/api/news/${symbol}`);
+
+            if (!response.ok) {
+                console.warn(`News data not available for ${symbol}`);
+                return null;
+            }
+
+            const data = await response.json();
+            return data.articles || [];
+        } catch (error) {
+            console.warn(`Failed to fetch news for ${symbol}:`, error);
+            return null;
+        }
     }
 };
 
@@ -1791,9 +1808,10 @@ const UI = {
 
         try {
             // Fetch quote and SMA data
-            const [data, smaData] = await Promise.all([
+            const [data, smaData, newsArticles] = await Promise.all([
                 API.fetchQuote(symbol, true),
-                API.fetchSMA(symbol)
+                API.fetchSMA(symbol),
+                API.fetchNews(symbol)
             ]);
 
             const quote = data.symbol ? data : data['Global Quote'];
@@ -1886,6 +1904,27 @@ const UI = {
                         <div><strong>Liquidity:</strong> ${signal.liquidity}</div>
                     </div>
                 </div>
+
+                ${newsArticles && newsArticles.length > 0 ? `
+                <div class="research-section">
+                    <div class="research-section-title">📰 Recent News</div>
+                    <div class="news-list">
+                        ${newsArticles.slice(0, 5).map(article => {
+                            const date = new Date(article.datetime * 1000);
+                            const timeAgo = this.formatTimeAgo(date);
+                            return `
+                                <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="news-item">
+                                    <div class="news-headline">${article.headline}</div>
+                                    <div class="news-meta">
+                                        <span class="news-source">${article.source}</span>
+                                        <span class="news-time">${timeAgo}</span>
+                                    </div>
+                                </a>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                ` : ''}
             `;
 
         } catch (error) {
@@ -1896,6 +1935,17 @@ const UI = {
     closeResearchPanel() {
         const panel = document.getElementById('researchPanel');
         panel.classList.remove('visible');
+    },
+
+    formatTimeAgo(date) {
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+
+        if (seconds < 60) return 'just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+        return date.toLocaleDateString();
     }
 };
 
