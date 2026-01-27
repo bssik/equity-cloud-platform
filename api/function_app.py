@@ -128,3 +128,33 @@ def get_news_function(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
+
+@app.route(route="history/{symbol}")
+def get_stock_history_function(req: func.HttpRequest) -> func.HttpResponse:
+    symbol = req.route_params.get('symbol')
+
+    if not symbol:
+        return func.HttpResponse(
+             json.dumps({"error": "Please provide a stock symbol"}),
+             status_code=400,
+             mimetype="application/json"
+        )
+
+    logging.info(f"Processing History request for: {symbol}")
+
+    try:
+        stock_service = StockService()
+        history_data = stock_service.get_daily_prices(symbol)
+
+        return func.HttpResponse(
+            json.dumps(history_data),
+            status_code=200,
+            mimetype="application/json"
+        )
+    except Exception as e:
+         logging.error(f"History Error: {str(e)}")
+         return func.HttpResponse(
+             json.dumps({"error": "Internal server error processing history request"}),
+             status_code=500,
+             mimetype="application/json"
+         )
