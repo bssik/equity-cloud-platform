@@ -613,6 +613,10 @@ const UI = {
         // Update rate limit display periodically
         this.updateRateLimitDisplay();
         setInterval(() => this.updateRateLimitDisplay(), 1000);
+        
+        // Update notification badge periodically
+        this.updateNotificationBadge();
+        setInterval(() => this.updateNotificationBadge(), 10000); // Every 10 seconds
     },
 
     attachEventListeners() {
@@ -766,6 +770,80 @@ const UI = {
                 }, { passive: true });
             }
         });
+
+        // Toolbar buttons
+        document.getElementById('refreshBtn')?.addEventListener('click', () => this.refreshCurrentView());
+        document.getElementById('notificationsBtn')?.addEventListener('click', () => this.showNotifications());
+        document.getElementById('settingsBtn')?.addEventListener('click', () => this.showSettings());
+    },
+
+    refreshCurrentView() {
+        if (AppState.mode === 'single') {
+            const symbolInput = document.getElementById('symbolInput');
+            if (symbolInput && symbolInput.value.trim()) {
+                this.fetchStock();
+            }
+        } else {
+            const symbol1 = document.getElementById('compareSymbol1')?.value.trim();
+            const symbol2 = document.getElementById('compareSymbol2')?.value.trim();
+            if (symbol1 && symbol2) {
+                this.compareStocks();
+            }
+        }
+        
+        // Show feedback
+        const btn = document.getElementById('refreshBtn');
+        if (btn) {
+            btn.style.transform = 'rotate(360deg)';
+            setTimeout(() => btn.style.transform = '', 500);
+        }
+    },
+
+    showNotifications() {
+        const alerts = Storage.getAlerts();
+        const triggeredAlerts = alerts.filter(a => a.triggered);
+        
+        if (triggeredAlerts.length === 0) {
+            alert('No new notifications.\n\nTriggered alerts will appear here.');
+        } else {
+            const messages = triggeredAlerts.map(a => 
+                `🔔 ${a.symbol} ${a.condition} $${a.targetPrice.toFixed(2)}`
+            ).join('\n');
+            alert(`Notifications (${triggeredAlerts.length}):\n\n${messages}`);
+        }
+        
+        // Update badge
+        this.updateNotificationBadge();
+    },
+
+    showSettings() {
+        const settings = [
+            '⚙️ Settings',
+            '',
+            '• Theme: ' + (AppState.theme === 'dark' ? 'Dark 🌙' : 'Light ☀️'),
+            '• API Cache: ' + (Cache.TTL / 1000) + 's',
+            '• Rate Limit: ' + (AppState.minApiInterval / 1000) + 's',
+            '• Screen: ' + (AppState.isMobile ? 'Mobile 📱' : AppState.isTablet ? 'Tablet' : 'Desktop 🖥️'),
+            '',
+            'Use theme toggle (🌓) to switch appearance.'
+        ].join('\n');
+        
+        alert(settings);
+    },
+
+    updateNotificationBadge() {
+        const alerts = Storage.getAlerts();
+        const triggeredCount = alerts.filter(a => a.triggered).length;
+        const badge = document.getElementById('notificationBadge');
+        
+        if (badge) {
+            if (triggeredCount > 0) {
+                badge.textContent = triggeredCount;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
     },
 
     handleQuickFilter(category) {

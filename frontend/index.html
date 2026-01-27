@@ -484,6 +484,76 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toolbar-btn {
+            padding: 8px 12px;
+            background: rgba(255,255,255,.8);
+            border: 1px solid rgba(226,232,240,.9);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all .2s;
+            min-height: 36px;
+            min-width: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(37,99,235,.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .toolbar-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            border-radius: 999px;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 5px;
+            min-width: 16px;
+            text-align: center;
+        }
+
+        .market-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(34,197,94,.1);
+            border: 1px solid rgba(34,197,94,.3);
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent3);
+        }
+
+        .market-status .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--accent3);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
         }
 
         .mode-btn {
@@ -1292,12 +1362,24 @@
 
             .header-right {
                 width: 100%;
-                flex-direction: column;
+            }
+
+            .header-actions {
+                order: 1;
+                width: 100%;
+                justify-content: space-between;
             }
 
             .mode-btn {
+                order: 2;
                 width: 100%;
                 padding: 12px 16px;
+            }
+
+            .market-status {
+                order: 3;
+                width: 100%;
+                justify-content: center;
             }
 
             .market-overview {
@@ -1439,6 +1521,22 @@
                         <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure <span class="kbd-hint" title="Press / to focus input">Press /</span></p>
                     </div>
                     <div class="header-right">
+                        <div class="header-actions">
+                            <button class="toolbar-btn" id="refreshBtn" title="Refresh Data">
+                                🔄
+                            </button>
+                            <button class="toolbar-btn" id="notificationsBtn" title="Notifications">
+                                🔔
+                                <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                            </button>
+                            <button class="toolbar-btn" id="settingsBtn" title="Settings">
+                                ⚙️
+                            </button>
+                        </div>
+                        <div class="market-status" id="marketStatus">
+                            <span class="pulse"></span>
+                            <span>Live Market</span>
+                        </div>
                         <button class="mode-btn" id="modeToggle">⚖️ Compare Mode</button>
                     </div>
                 </div>
