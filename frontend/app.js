@@ -475,7 +475,10 @@ const Renderer = {
 
                 <div class="timestamp">Last updated at ${timeStr}</div>
             </div>
-            ${!isInWatchlist ? `<button class="add-to-watchlist" data-symbol="${symbol}">📌 Add to Watchlist</button>` : `<div class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ In Watchlist</div>`}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                ${!isInWatchlist ? `<button class="add-to-watchlist" data-symbol="${symbol}">📌 Watchlist</button>` : `<button class="add-to-watchlist" style="opacity: 0.6; cursor: default;">✓ Added</button>`}
+                <button class="ai-analysis-btn" onclick="UI.openAIModal('${symbol}')">✨ AI Insight</button>
+            </div>
         `;
     },
 
@@ -687,6 +690,14 @@ const UI = {
             if (e.target.id === 'alertsModal') Alerts.closeModal();
         });
 
+        // AI Modal
+        const closeAI = () => document.getElementById('aiModal')?.classList.remove('visible');
+        document.getElementById('aiClose')?.addEventListener('click', closeAI);
+        document.getElementById('aiNotifyBtn')?.addEventListener('click', closeAI);
+        document.getElementById('aiModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'aiModal') closeAI();
+        });
+
         // Alerts inputs
         forceUppercase(document.getElementById('alertSymbol'));
 
@@ -820,6 +831,13 @@ const UI = {
         ].join('\n');
 
         alert(settings);
+    },
+
+    openAIModal(symbol) {
+        const modal = document.getElementById('aiModal');
+        const title = modal.querySelector('.modal-title');
+        title.innerHTML = `🤖 AI Analysis: <span style="color: var(--accent);">${symbol}</span>`;
+        modal.classList.add('visible');
     },
 
     updateNotificationBadge() {
