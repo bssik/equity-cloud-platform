@@ -7,7 +7,92 @@ const AppState = {
     rateLimitQueue: [],
     isProcessingQueue: false,
     lastApiCall: 0,
-    minApiInterval: 12000 // 12 seconds between API calls
+    minApiInterval: 12000, // 12 seconds between API calls
+    isMobile: false,
+    isTablet: false,
+    screenWidth: window.innerWidth
+};
+
+// ============================================
+// RESPONSIVE UTILITIES
+// ============================================
+const ResponsiveManager = {
+    breakpoints: {
+        mobile: 600,
+        tablet: 768,
+        desktop: 1024
+    },
+
+    init() {
+        this.updateScreenState();
+        window.addEventListener('resize', this.debounce(() => {
+            this.updateScreenState();
+            this.handleResize();
+        }, 250));
+
+        // Handle orientation changes
+        if (window.screen?.orientation) {
+            window.screen.orientation.addEventListener('change', () => {
+                this.handleOrientationChange();
+            });
+        }
+    },
+
+    updateScreenState() {
+        const width = window.innerWidth;
+        AppState.screenWidth = width;
+        AppState.isMobile = width <= this.breakpoints.mobile;
+        AppState.isTablet = width > this.breakpoints.mobile && width <= this.breakpoints.tablet;
+        AppState.isDesktop = width > this.breakpoints.tablet;
+    },
+
+    handleResize() {
+        // Adjust chart if visible
+        if (ChartManager.chart) {
+            ChartManager.chart.resize();
+        }
+
+        // Update any responsive-specific UI elements
+        this.adjustUIForScreenSize();
+    },
+
+    handleOrientationChange() {
+        // Give the browser time to adjust
+        setTimeout(() => {
+            this.updateScreenState();
+            this.handleResize();
+        }, 100);
+    },
+
+    adjustUIForScreenSize() {
+        const container = document.querySelector('.container');
+        if (!container) return;
+
+        // Adjust padding for mobile
+        if (AppState.isMobile) {
+            document.body.style.padding = '12px';
+        } else if (AppState.isTablet) {
+            document.body.style.padding = '16px';
+        } else {
+            document.body.style.padding = '20px';
+        }
+    },
+
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+
+    isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
 };
 
 // ============================================
@@ -438,6 +523,11 @@ const Renderer = {
 
         html += '</tbody></table></div>';
 
+        // Add scroll hint for mobile
+        if (AppState.isMobile) {
+            html = '<div style="font-size: 11px; color: var(--muted2); margin-bottom: 8px; text-align: center;">← Scroll horizontally to see more →</div>' + html;
+        }
+
         // Show errors for failed fetches
         const errors = results.filter(r => r.error);
         if (errors.length > 0) {
@@ -527,7 +617,19 @@ const UI = {
 
     attachEventListeners() {
         // Theme toggle
-        document.getElementById('themeToggle')?.addEventListener('click', () => this.toggleTheme());
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => this.toggleTheme());
+            // Add touch feedback
+            if (ResponsiveManager.isTouchDevice()) {
+                themeToggle.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                }, { passive: true });
+                themeToggle.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                }, { passive: true });
+            }
+        }
 
         const forceUppercase = (el) => {
             if (!el) return;
@@ -542,6 +644,16 @@ const UI = {
                 const symbol = e.target.dataset.symbol;
                 if (symbol) this.selectSymbol(symbol);
             });
+
+            // Add touch feedback for mobile
+            if (ResponsiveManager.isTouchDevice()) {
+                chip.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                }, { passive: true });
+                chip.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                }, { passive: true });
+            }
         });
 
         // Single mode input handlers
@@ -551,7 +663,12 @@ const UI = {
 
         symbolInput?.addEventListener('input', () => this.handleInput(symbolInput));
         symbolInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.fetchStock();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Blur input on mobile after enter
+                if (AppState.isMobile) symbolInput.blur();
+                this.fetchStock();
+            }
         });
         clearBtn?.addEventListener('click', () => this.clearInput());
         searchBtn?.addEventListener('click', () => this.fetchStock());
@@ -581,13 +698,21 @@ const UI = {
         // Export button
         document.getElementById('exportBtn')?.addEventListener('click', () => exportWatchlist());
 
-        // Keyboard shortcuts
+        // Keyboard shortcuts (desktop only)
         document.addEventListener('keydown', (e) => {
+            // Skip keyboard shortcuts on mobile devices or when input is focused
+            if (AppState.isMobile) return;
+            if (document.activeElement?.tagName === 'INPUT' ||
+                document.activeElement?.tagName === 'TEXTAREA') return;
+
             if (e.key === '/') {
                 e.preventDefault();
                 symbolInput?.focus();
             } else if (e.key === 'Escape') {
                 this.clearInput();
+            } else if (e.ctrlKey && e.key === '/') {
+                e.preventDefault();
+                this.toggleTheme();
             }
         });
 
@@ -810,7 +935,10 @@ const UI = {
 // ============================================
 // INITIALIZATION
 // ============================================
-window.addEventListener('load', () => UI.init());
+window.addEventListener('load', () => {
+    ResponsiveManager.init();
+    UI.init();
+});
 
 // ============================================
 // PRICE ALERTS SYSTEM
@@ -998,6 +1126,13 @@ const ChartManager = {
 
         // Create simple price chart
         const ctx = canvas.getContext('2d');
+
+        // Adjust chart options for mobile
+        const isMobile = AppState.isMobile;
+        const fontSize = isMobile ? 9 : 11;
+        const pointRadius = isMobile ? 4 : 5;
+        const pointHoverRadius = isMobile ? 6 : 7;
+
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -1013,13 +1148,17 @@ const ChartManager = {
                     pointBackgroundColor: '#2563eb',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7
+                    pointRadius: pointRadius,
+                    pointHoverRadius: pointHoverRadius
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
                         display: false
@@ -1030,8 +1169,10 @@ const ChartManager = {
                         bodyColor: '#fff',
                         borderColor: '#2563eb',
                         borderWidth: 1,
-                        padding: 12,
+                        padding: isMobile ? 8 : 12,
                         displayColors: false,
+                        titleFont: { size: fontSize + 1 },
+                        bodyFont: { size: fontSize },
                         callbacks: {
                             label: (context) => `$${context.parsed.y.toFixed(2)}`
                         }
@@ -1043,7 +1184,7 @@ const ChartManager = {
                         ticks: {
                             callback: (value) => `$${value.toFixed(2)}`,
                             color: '#64748b',
-                            font: { size: 11 }
+                            font: { size: fontSize }
                         },
                         grid: {
                             color: 'rgba(226,232,240,0.5)',
@@ -1053,7 +1194,9 @@ const ChartManager = {
                     x: {
                         ticks: {
                             color: '#64748b',
-                            font: { size: 11 }
+                            font: { size: fontSize },
+                            maxRotation: isMobile ? 45 : 0,
+                            minRotation: isMobile ? 45 : 0
                         },
                         grid: {
                             display: false,
