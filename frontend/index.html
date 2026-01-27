@@ -437,7 +437,7 @@
                 if (quote && Object.keys(quote).length > 0) {
                     const price = parseFloat(quote['05. price']);
                     const change = quote['10. change percent'];
-                    const isPositive = !change.startsWith('-');
+                    const isPositive = change && !change.startsWith('-');
                     const timeStr = fetchTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
                     resultDiv.innerHTML = `
@@ -450,12 +450,13 @@
                                 <span class="quote-label">Price (USD)</span>
                                 <span class="quote-value">$${price.toFixed(2)}</span>
                             </div>
+                            ${change ? `
                             <div class="quote-item">
                                 <span class="quote-label">Change</span>
                                 <span class="quote-change ${isPositive ? 'positive' : 'negative'}">
                                     ${isPositive ? '+' : ''}${change}
                                 </span>
-                            </div>
+                            </div>` : ''}
                             <div class="timestamp">Last updated at ${timeStr}</div>
                         </div>
                     `;
