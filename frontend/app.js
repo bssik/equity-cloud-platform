@@ -273,7 +273,7 @@ const API = {
         const data = await response.json();
 
         // Cache the result
-        if (data['Global Quote'] && Object.keys(data['Global Quote']).length > 0) {
+        if (data.symbol && data.price) {
             Cache.set(symbol, data);
         }
 
@@ -399,17 +399,18 @@ const SignalAnalyzer = {
 // ============================================
 const Renderer = {
     renderSingleQuote(quote, symbol, fetchTime, isCached = false) {
-        const price = parseFloat(quote['05. price']);
-        const change = quote['10. change percent'];
+        // Handle both old (Global Quote) and new API formats
+        const price = quote.price ? parseFloat(quote.price) : parseFloat(quote['05. price']);
+        const change = quote.change_percent || quote['10. change percent'];
         const isPositive = change && !change.startsWith('-');
         const timeStr = fetchTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        const open = quote['02. open'];
-        const high = quote['03. high'];
-        const low = quote['04. low'];
-        const volume = quote['06. volume'];
-        const prevClose = quote['08. previous close'];
-        const tradingDay = quote['07. latest trading day'];
+        const open = quote.open || quote['02. open'];
+        const high = quote.high || quote['03. high'];
+        const low = quote.low || quote['04. low'];
+        const volume = quote.volume || quote['06. volume'];
+        const prevClose = quote.previous_close || quote['08. previous close'];
+        const tradingDay = quote.latest_trading_day || quote['07. latest trading day'];
 
         const watchlist = Storage.getWatchlist();
         const isInWatchlist = watchlist.includes(symbol);
@@ -423,7 +424,7 @@ const Renderer = {
             <div class="quote-grid">
                 <div class="quote-item">
                     <span class="quote-label">Symbol</span>
-                    <span class="quote-value">${quote['01. symbol']} ${cacheBadge}</span>
+                    <span class="quote-value">${quote.symbol || quote['01. symbol'] || symbol} ${cacheBadge}</span>
                 </div>
                 <div class="quote-item">
                     <span class="quote-label">Price (USD)</span>
@@ -1029,9 +1030,9 @@ const UI = {
             const cachedBefore = Cache.get(symbol);
             const data = await API.fetchQuote(symbol, true); // Use cache
             const isCached = !!cachedBefore;
-            const quote = data['Global Quote'];
+            const quote = data.symbol ? data : data['Global Quote'];
 
-            if (quote && Object.keys(quote).length > 0) {
+            if (quote && (quote.symbol || Object.keys(quote).length > 0)) {
                 Storage.saveToHistory(symbol);
                 Renderer.renderHistory();
                 resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime, isCached);
