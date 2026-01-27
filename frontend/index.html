@@ -235,6 +235,49 @@
             font-size: 13px;
         }
 
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(37,99,235,.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .examples {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .example-chip {
+            padding: 6px 12px;
+            background: rgba(241,245,249,.9);
+            border: 1px solid rgba(226,232,240,.9);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+
+        .example-chip:hover {
+            background: rgba(226,232,240,.95);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         @media (hover: hover) {
             button:hover {
                 transform: translateY(-2px);
@@ -268,21 +311,45 @@
                 <h1>Real-Time Market Data</h1>
                 <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure</p>
 
+                <div class="examples">
+                    <span class="example-chip" onclick="selectSymbol('MSFT')">MSFT</span>
+                    <span class="example-chip" onclick="selectSymbol('AAPL')">AAPL</span>
+                    <span class="example-chip" onclick="selectSymbol('GOOGL')">GOOGL</span>
+                    <span class="example-chip" onclick="selectSymbol('TSLA')">TSLA</span>
+                    <span class="example-chip" onclick="selectSymbol('NVDA')">NVDA</span>
+                </div>
+
                 <div class="search-box">
-                    <input type="text" id="symbolInput" placeholder="e.g. MSFT, AAPL, TSLA" onkeypress="if(event.key==='Enter') fetchStock()">
-                    <button onclick="fetchStock()">Search</button>
+                    <input type="text" id="symbolInput" placeholder="Enter ticker symbol" onkeypress="if(event.key==='Enter') fetchStock()" maxlength="6">
+                    <button id="searchBtn" onclick="fetchStock()">Search</button>
                 </div>
 
-                <div id="result">
-                    <span class="loading">Enter a symbol to begin</span>
-                </div>
-            </div>
-        </div>
-    </div>
+        function selectSymbol(symbol) {
+            document.getElementById('symbolInput').value = symbol;
+            fetchStock();
+        }
 
-    <script>
         async function fetchStock() {
-            const symbol = document.getElementById('symbolInput').value.toUpperCase().trim();
+            const input = document.getElementById('symbolInput').value.toUpperCase().trim();
+            const resultDiv = document.getElementById('result');
+            const searchBtn = document.getElementById('searchBtn');
+
+            // Validate input: only letters, 1-6 characters
+            const symbol = input.replace(/[^A-Z]/g, '');
+            
+            if (!symbol) {
+                resultDiv.innerHTML = '<span class="loading">Please enter a valid symbol</span>';
+                return;
+            }
+
+            if (symbol.length > 6) {
+                resultDiv.innerHTML = '<span class="error">Symbol too long (max 6 characters)</span>';
+                return;
+            }
+
+            // Disable button and show spinner
+            searchBtn.disabled = true;
+            resultDiv.innerHTML = '<div class="spinner"></divim();
             const resultDiv = document.getElementById('result');
 
             if (!symbol) {
@@ -328,6 +395,9 @@
                 }
             } catch (error) {
                 resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            } finally {
+                // Re-enable button
+                searchBtn.disabled = false;
             }
         }
     </script>
