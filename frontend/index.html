@@ -3,64 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EquityCloud Analytics</title>
+    <title>EquityCloud · Real-Time Market Data</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f9; padding: 50px; display: flex; justify-content: center; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 450px; }
-        h1 { color: #0078d4; margin-top: 0; font-size: 1.5rem; }
-        .search-box { display: flex; gap: 10px; margin: 20px 0; }
-        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #0078d4; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; }
-        button:hover { background: #005a9e; }
-        #result { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px; font-size: 0.9rem; min-height: 50px; }
-        .loading { color: #666; font-style: italic; }
+        :root {
+            --bg0: #070a12;
+            --bg1: #0b1220;
+            --card: #0f172a;
+            --muted: #475569;
+            --muted2: #64748b;
+            --accent: #2563eb;
+            --accent2: #06b6d4;
+            --accent3: #22c55e;
+            --shadow: 0 18px 45px rgba(2,6,23,.35);
+            --radius: 18px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+
+        body {
+            background: radial-gradient(1200px 600px at 20% 10%, rgba(37,99,235,.25), transparent 55%),
+                        radial-gradient(900px 500px at 85% 18%, rgba(6,182,212,.22), transparent 55%),
+                        radial-gradient(900px 500px at 50% 95%, rgba(34,197,94,.16), transparent 60%),
+                        linear-gradient(180deg, var(--bg0), var(--bg1));
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body:before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(to right, rgba(148,163,184,.08) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(148,163,184,.08) 1px, transparent 1px);
+            background-size: 64px 64px;
+            mask-image: radial-gradient(circle at 50% 30%, rgba(0,0,0,.9), transparent 70%);
+            opacity: .35;
+        }
+
+        .container {
+            width: min(580px, 94vw);
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: #cbd5e1;
+        }
+
+        .mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: conic-gradient(from 180deg, var(--accent), var(--accent2), var(--accent3), var(--accent));
+            box-shadow: 0 10px 30px rgba(37,99,235,.25);
+        }
+
+        .brand-text {
+            font-size: 13px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            opacity: .9;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.98));
+            color: #0b1220;
+            border: 1px solid rgba(226,232,240,.75);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(600px 250px at 10% 0%, rgba(37,99,235,.12), transparent 60%),
+                        radial-gradient(600px 250px at 95% 15%, rgba(6,182,212,.10), transparent 60%);
+            pointer-events: none;
+        }
+
+        .card-content {
+            position: relative;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: clamp(26px, 4vw, 32px);
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            margin: 0 0 28px;
+            color: var(--muted2);
+            font-size: 13px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 1px solid rgba(226,232,240,.9);
+            border-radius: 12px;
+            background: rgba(241,245,249,.75);
+            color: #0f172a;
+            font-size: 14px;
+            transition: all .2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+        }
+
+        input::placeholder {
+            color: var(--muted);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(37,99,235,.35);
+            transition: all .2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37,99,235,.45);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #result {
+            border: 1px solid rgba(226,232,240,.95);
+            border-radius: 14px;
+            background: rgba(255,255,255,.9);
+            padding: 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading {
+            color: var(--muted2);
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        .quote-grid {
+            display: grid;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .quote-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed rgba(226,232,240,.95);
+        }
+
+        .quote-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .quote-label {
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--muted2);
+        }
+
+        .quote-value {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #0f172a;
+        }
+
+        .quote-change {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: var(--accent3);
+        }
+
+        .negative {
+            color: #ef4444;
+        }
+
+        .error {
+            color: #ef4444;
+            font-size: 13px;
+        }
+
+        @media (hover: hover) {
+            button:hover {
+                transform: translateY(-2px);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 24px;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>EquityCloud Dashboard</h1>
-        <p>Enter a ticker symbol to fetch real-time data.</p>
-
-        <div class="search-box">
-            <input type="text" id="symbolInput" placeholder="e.g. MSFT, AAPL, TSLA">
-            <button onclick="fetchStock()">Search</button>
+    <div class="container">
+        <div class="brand">
+            <div class="mark"></div>
+            <span class="brand-text">EquityCloud Analytics</span>
         </div>
 
-        <div id="result">
-            <span class="loading">Waiting for input...</span>
+        <div class="card">
+            <div class="card-content">
+                <h1>Real-Time Market Data</h1>
+                <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure</p>
+
+                <div class="search-box">
+                    <input type="text" id="symbolInput" placeholder="e.g. MSFT, AAPL, TSLA" onkeypress="if(event.key==='Enter') fetchStock()">
+                    <button onclick="fetchStock()">Search</button>
+                </div>
+
+                <div id="result">
+                    <span class="loading">Enter a symbol to begin</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         async function fetchStock() {
-            const symbol = document.getElementById('symbolInput').value.toUpperCase();
+            const symbol = document.getElementById('symbolInput').value.toUpperCase().trim();
             const resultDiv = document.getElementById('result');
 
-            if (!symbol) return;
+            if (!symbol) {
+                resultDiv.innerHTML = '<span class="loading">Please enter a symbol</span>';
+                return;
+            }
 
-            resultDiv.innerHTML = '<span class="loading">Querying Azure Backend...</span>';
+            resultDiv.innerHTML = '<span class="loading">Querying Azure backend...</span>';
 
             try {
-                // Professional Tip: Using a relative path leverages the ASWA proxy
                 const response = await fetch(`/api/quote/${symbol}`);
 
                 if (!response.ok) throw new Error('API Error');
 
                 const data = await response.json();
-
-                // Formatting the response for the UI
                 const quote = data['Global Quote'];
+
                 if (quote) {
+                    const price = parseFloat(quote['05. price']);
+                    const change = quote['10. change percent'];
+                    const isPositive = !change.startsWith('-');
+
                     resultDiv.innerHTML = `
-                        <p><strong>Symbol:</strong> ${quote['01. symbol']}</p>
-                        <p><strong>Price:</strong> $${parseFloat(quote['05. price']).toFixed(2)}</p>
-                        <p><strong>Change:</strong> ${quote['10. change percent']}</p>
+                        <div class="quote-grid">
+                            <div class="quote-item">
+                                <span class="quote-label">Symbol</span>
+                                <span class="quote-value">${quote['01. symbol']}</span>
+                            </div>
+                            <div class="quote-item">
+                                <span class="quote-label">Price (USD)</span>
+                                <span class="quote-value">$${price.toFixed(2)}</span>
+                            </div>
+                            <div class="quote-item">
+                                <span class="quote-label">Change</span>
+                                <span class="quote-change ${isPositive ? 'positive' : 'negative'}">
+                                    ${isPositive ? '+' : ''}${change}
+                                </span>
+                            </div>
+                        </div>
                     `;
                 } else {
-                    resultDiv.innerHTML = "Symbol not found or API limit reached.";
+                    resultDiv.innerHTML = '<span class="error">Symbol not found or API limit reached</span>';
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<span style="color:red">Error: ${error.message}</span>`;
+                resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
             }
         }
     </script>
