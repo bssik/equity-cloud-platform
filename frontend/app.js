@@ -58,6 +58,10 @@ const CompanyNames = {
             console.log('Using fallback company names');
             return false;
         }
+    }
+};
+
+// ============================================
 // RESPONSIVE UTILITIES
 // ============================================
 const ResponsiveManager = {
@@ -1651,3 +1655,5 @@ const ChartManager = {
         });
     }
 };
+
+// End of file - v1.0
