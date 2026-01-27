@@ -105,7 +105,7 @@ const Autocomplete = {
     },
 
     handleInput(input, suggestions) {
-        const query = input.value.toUpperCase().trim();
+        const query = input.value.trim();
 
         if (!query || query.length === 0) {
             this.hideSuggestions(suggestions);
@@ -123,6 +123,7 @@ const Autocomplete = {
     findMatches(query) {
         const symbols = CompanyNames.getAllSymbols();
         const matches = [];
+        const queryUpper = query.toUpperCase();
 
         symbols.forEach(symbol => {
             const name = CompanyNames.get(symbol);
@@ -130,23 +131,23 @@ const Autocomplete = {
             const nameUpper = name.toUpperCase();
 
             // Exact match (highest priority)
-            if (symbolUpper === query) {
+            if (symbolUpper === queryUpper) {
                 matches.push({ symbol, name, score: 100 });
             }
             // Starts with query (high priority)
-            else if (symbolUpper.startsWith(query)) {
+            else if (symbolUpper.startsWith(queryUpper)) {
                 matches.push({ symbol, name, score: 90 });
             }
             // Contains query in symbol (medium priority)
-            else if (symbolUpper.includes(query)) {
+            else if (symbolUpper.includes(queryUpper)) {
                 matches.push({ symbol, name, score: 70 });
             }
             // Contains query in company name (lower priority)
-            else if (nameUpper.includes(query)) {
+            else if (nameUpper.includes(queryUpper)) {
                 matches.push({ symbol, name, score: 50 });
             }
             // Fuzzy match (lowest priority)
-            else if (this.fuzzyMatch(query, symbolUpper)) {
+            else if (this.fuzzyMatch(queryUpper, symbolUpper)) {
                 matches.push({ symbol, name, score: 30 });
             }
         });
@@ -177,7 +178,7 @@ const Autocomplete = {
         const html = matches.map((match, index) => `
             <div class="autocomplete-item" data-symbol="${match.symbol}" data-index="${index}">
                 <span class="autocomplete-symbol">${match.symbol}</span>
-                <span class="autocomplete-name">(${match.name})</span>
+                <span class="autocomplete-name"> (${match.name})</span>
             </div>
         `).join('');
 
@@ -1234,15 +1235,6 @@ const UI = {
             }
         }
 
-        const forceUppercase = (el) => {
-            if (!el) return;
-            el.addEventListener('input', () => {
-                el.value = el.value.toUpperCase();
-            });
-        };
-
-        // Example chips are now rendered dynamically in renderExampleChips()
-
         // Single mode input handlers
         const symbolInput = document.getElementById('symbolInput');
         const clearBtn = document.getElementById('clearBtn');
@@ -1266,11 +1258,6 @@ const UI = {
         // Compare button
         document.getElementById('compareBtn')?.addEventListener('click', () => this.compareStocks());
 
-        // Compare inputs
-        forceUppercase(document.getElementById('compareSymbol1'));
-        forceUppercase(document.getElementById('compareSymbol2'));
-        forceUppercase(document.getElementById('compareSymbol3'));
-
         // Alerts modal
         document.getElementById('alertsBtn')?.addEventListener('click', () => Alerts.openModal());
         document.getElementById('alertsClose')?.addEventListener('click', () => Alerts.closeModal());
@@ -1286,9 +1273,6 @@ const UI = {
         document.getElementById('aiModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'aiModal') closeAI();
         });
-
-        // Alerts inputs
-        forceUppercase(document.getElementById('alertSymbol'));
 
         // Export button
         document.getElementById('exportBtn')?.addEventListener('click', () => exportWatchlist());
@@ -1660,13 +1644,13 @@ const UI = {
     },
 
     async fetchStock() {
-        const input = document.getElementById('symbolInput').value.toUpperCase().trim();
+        const input = document.getElementById('symbolInput').value.trim();
         const resultDiv = document.getElementById('result');
         const searchBtn = document.getElementById('searchBtn');
-        const symbol = input.replace(/[^A-Z]/g, '');
+        const symbol = input.toUpperCase().replace(/[^A-Z]/g, '');
 
         if (!symbol) {
-            resultDiv.innerHTML = '<span class="loading">Please enter a valid symbol</span>';
+            resultDiv.innerHTML = '<span class="loading">Please enter a valid symbol or company name</span>';
             return;
         }
 
@@ -1729,9 +1713,9 @@ const UI = {
     },
 
     async compareStocks() {
-        const symbol1 = document.getElementById('compareSymbol1').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
-        const symbol2 = document.getElementById('compareSymbol2').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
-        const symbol3 = document.getElementById('compareSymbol3').value.toUpperCase().trim().replace(/[^A-Z]/g, '');
+        const symbol1 = document.getElementById('compareSymbol1').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+        const symbol2 = document.getElementById('compareSymbol2').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+        const symbol3 = document.getElementById('compareSymbol3').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
 
         const symbols = [symbol1, symbol2, symbol3].filter(s => s.length > 0);
 
@@ -1947,7 +1931,7 @@ const Alerts = {
     },
 
     addAlert() {
-        const symbol = document.getElementById('alertSymbol').value.toUpperCase().trim();
+        const symbol = document.getElementById('alertSymbol').value.trim().toUpperCase();
         const condition = document.getElementById('alertCondition').value;
         const price = parseFloat(document.getElementById('alertPrice').value);
 
