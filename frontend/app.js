@@ -65,17 +65,8 @@ const ResponsiveManager = {
     },
 
     adjustUIForScreenSize() {
-        const container = document.querySelector('.container');
-        if (!container) return;
-
-        // Adjust padding for mobile
-        if (AppState.isMobile) {
-            document.body.style.padding = '12px';
-        } else if (AppState.isTablet) {
-            document.body.style.padding = '16px';
-        } else {
-            document.body.style.padding = '20px';
-        }
+        // Padding is now handled by CSS media queries
+        // This function can be used for other dynamic UI adjustments if needed
     },
 
     debounce(func, wait) {
