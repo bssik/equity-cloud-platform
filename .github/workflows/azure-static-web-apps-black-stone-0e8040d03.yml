@@ -14,6 +14,7 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
         with:
@@ -31,6 +32,8 @@ jobs:
           app_location: "frontend" # App source code path
           api_location: "api" # Api source code path
           output_location: "" # Built app content directory
+          skip_api_build: false
+          deployment_environment: "Production"
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:

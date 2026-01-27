@@ -613,7 +613,7 @@ const UI = {
         // Update rate limit display periodically
         this.updateRateLimitDisplay();
         setInterval(() => this.updateRateLimitDisplay(), 1000);
-        
+
         // Update notification badge periodically
         this.updateNotificationBadge();
         setInterval(() => this.updateNotificationBadge(), 10000); // Every 10 seconds
@@ -790,7 +790,7 @@ const UI = {
                 this.compareStocks();
             }
         }
-        
+
         // Show feedback
         const btn = document.getElementById('refreshBtn');
         if (btn) {
@@ -802,16 +802,16 @@ const UI = {
     showNotifications() {
         const alerts = Storage.getAlerts();
         const triggeredAlerts = alerts.filter(a => a.triggered);
-        
+
         if (triggeredAlerts.length === 0) {
             alert('No new notifications.\n\nTriggered alerts will appear here.');
         } else {
-            const messages = triggeredAlerts.map(a => 
+            const messages = triggeredAlerts.map(a =>
                 `🔔 ${a.symbol} ${a.condition} $${a.targetPrice.toFixed(2)}`
             ).join('\n');
             alert(`Notifications (${triggeredAlerts.length}):\n\n${messages}`);
         }
-        
+
         // Update badge
         this.updateNotificationBadge();
     },
@@ -827,7 +827,7 @@ const UI = {
             '',
             'Use theme toggle (🌓) to switch appearance.'
         ].join('\n');
-        
+
         alert(settings);
     },
 
@@ -835,7 +835,7 @@ const UI = {
         const alerts = Storage.getAlerts();
         const triggeredCount = alerts.filter(a => a.triggered).length;
         const badge = document.getElementById('notificationBadge');
-        
+
         if (badge) {
             if (triggeredCount > 0) {
                 badge.textContent = triggeredCount;
