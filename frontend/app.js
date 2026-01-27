@@ -1323,7 +1323,13 @@ const UI = {
         document.getElementById('watchlistItems')?.addEventListener('click', (e) => {
             if (e.target.classList.contains('watchlist-item')) {
                 const symbol = e.target.querySelector('.watchlist-symbol')?.textContent;
-                if (symbol) this.selectSymbol(symbol);
+                if (symbol) {
+                    if (e.ctrlKey || e.metaKey) {
+                        this.openResearchPanel(symbol);
+                    } else {
+                        this.selectSymbol(symbol);
+                    }
+                }
             } else if (e.target.classList.contains('watchlist-remove')) {
                 e.stopPropagation();
                 const symbol = e.target.closest('.watchlist-item')?.querySelector('.watchlist-symbol')?.textContent;
@@ -1366,6 +1372,9 @@ const UI = {
         document.getElementById('refreshBtn')?.addEventListener('click', () => this.refreshCurrentView());
         document.getElementById('notificationsBtn')?.addEventListener('click', () => this.showNotifications());
         document.getElementById('settingsBtn')?.addEventListener('click', () => this.showSettings());
+
+        // Research panel
+        document.getElementById('researchPanelClose')?.addEventListener('click', () => this.closeResearchPanel());
     },
 
     refreshCurrentView() {
@@ -1540,16 +1549,29 @@ const UI = {
             container.querySelectorAll('.example-chip').forEach(chip => {
                 chip.addEventListener('click', (e) => {
                     const symbol = e.target.dataset.symbol;
-                    if (symbol) this.selectSymbol(symbol);
+                    if (symbol) {
+                        // Right-click or Ctrl+click opens research panel
+                        if (e.ctrlKey || e.metaKey) {
+                            this.openResearchPanel(symbol);
+                        } else {
+                            this.selectSymbol(symbol);
+                        }
+                    }
                 });
 
-                // Add touch feedback for mobile
+                // Long press on mobile opens research panel
                 if (ResponsiveManager.isTouchDevice()) {
-                    chip.addEventListener('touchstart', function() {
+                    let pressTimer;
+                    chip.addEventListener('touchstart', function(e) {
                         this.style.transform = 'scale(0.95)';
+                        pressTimer = setTimeout(() => {
+                            const symbol = e.target.dataset.symbol;
+                            if (symbol) UI.openResearchPanel(symbol);
+                        }, 500);
                     }, { passive: true });
                     chip.addEventListener('touchend', function() {
                         this.style.transform = '';
+                        clearTimeout(pressTimer);
                     }, { passive: true });
                 }
             });
@@ -1772,6 +1794,124 @@ const UI = {
                 status.style.display = 'none';
             }
         }
+    },
+
+    async openResearchPanel(symbol) {
+        const panel = document.getElementById('researchPanel');
+        const title = document.getElementById('researchPanelTitle');
+        const content = document.getElementById('researchPanelContent');
+
+        title.textContent = `${symbol} Research`;
+        content.innerHTML = '<div class="spinner"></div>';
+        panel.classList.add('visible');
+
+        try {
+            // Fetch quote and SMA data
+            const [data, smaData] = await Promise.all([
+                API.fetchQuote(symbol, true),
+                API.fetchSMA(symbol)
+            ]);
+
+            const quote = data.symbol ? data : data['Global Quote'];
+            const signal = SignalAnalyzer.calculate(quote, smaData);
+
+            const price = quote.price ? parseFloat(quote.price) : parseFloat(quote['05. price']);
+            const change = quote.change_percent || quote['10. change percent'];
+            const volume = quote.volume || quote['06. volume'];
+            const open = quote.open || quote['02. open'];
+            const high = quote.high || quote['03. high'];
+            const low = quote.low || quote['04. low'];
+
+            // Determine suggested action based on signals
+            let action = 'HOLD';
+            let actionClass = 'hold';
+            let actionReason = 'No clear signal at this time.';
+
+            if (signal.volumeSignal?.isBreakout && signal.momentum.includes('Bullish')) {
+                action = 'BUY Stage 3';
+                actionClass = 'buy';
+                actionReason = 'Volume breakout with bullish momentum detected!';
+            } else if (signal.smaSignal?.distanceTo50Pct < -2 && signal.smaSignal?.distanceTo50Pct > -5) {
+                action = 'BUY Stage 2';
+                actionClass = 'buy';
+                actionReason = `Price near 50-day SMA support (${signal.smaSignal.distanceTo50Pct.toFixed(1)}% below).`;
+            } else if (signal.momentum.includes('Bearish') && signal.volatility === 'High') {
+                action = 'AVOID';
+                actionClass = 'avoid';
+                actionReason = 'Bearish momentum with high volatility - risky entry.';
+            } else if (signal.smaSignal?.position === '↗️ Above Both SMAs' && signal.volumeSignal?.volumeRatio > 1.2) {
+                action = 'HOLD/TRIM';
+                actionClass = 'trim';
+                actionReason = 'Strong position - consider trimming on excess volume.';
+            }
+
+            content.innerHTML = `
+                <div class="research-quick-stats">
+                    <div class="research-stat">
+                        <div class="research-stat-label">Price</div>
+                        <div class="research-stat-value">$${price.toFixed(2)}</div>
+                    </div>
+                    <div class="research-stat">
+                        <div class="research-stat-label">Change</div>
+                        <div class="research-stat-value ${change && change.startsWith('-') ? 'negative' : 'positive'}">${change || 'N/A'}</div>
+                    </div>
+                    <div class="research-stat">
+                        <div class="research-stat-label">Volume</div>
+                        <div class="research-stat-value">${parseInt(volume).toLocaleString()}</div>
+                    </div>
+                    <div class="research-stat">
+                        <div class="research-stat-label">Day Range</div>
+                        <div class="research-stat-value">${parseFloat(low).toFixed(2)} - ${parseFloat(high).toFixed(2)}</div>
+                    </div>
+                </div>
+
+                <div class="research-section">
+                    <div class="research-section-title">💡 Suggested Action</div>
+                    <div class="research-action-badge ${actionClass}">${action}</div>
+                    <p style="font-size: 12px; color: var(--muted2); margin-top: 8px;">${actionReason}</p>
+                </div>
+
+                ${signal.smaSignal ? `
+                <div class="research-section">
+                    <div class="research-section-title">📊 SMA Position</div>
+                    <div style="font-size: 12px; color: #0f172a; margin-bottom: 8px;">
+                        ${signal.smaSignal.position || 'N/A'}
+                    </div>
+                    ${signal.smaSignal.crossEvent ? `<div style="font-size: 11px; font-weight: 600; color: ${signal.smaSignal.crossClass === 'golden' ? 'var(--accent3)' : '#ef4444'}; margin-bottom: 8px;">${signal.smaSignal.crossEvent}</div>` : ''}
+                    ${signal.smaSignal.sma50 ? `<div style="font-size: 11px; color: var(--muted2);">50-day SMA: $${signal.smaSignal.sma50.toFixed(2)} (${signal.smaSignal.distanceTo50Pct > 0 ? '+' : ''}${signal.smaSignal.distanceTo50Pct.toFixed(2)}%)</div>` : ''}
+                    ${signal.smaSignal.sma200 ? `<div style="font-size: 11px; color: var(--muted2);">200-day SMA: $${signal.smaSignal.sma200.toFixed(2)} (${signal.smaSignal.distanceTo200Pct > 0 ? '+' : ''}${signal.smaSignal.distanceTo200Pct.toFixed(2)}%)</div>` : ''}
+                </div>
+                ` : ''}
+
+                ${signal.volumeSignal ? `
+                <div class="research-section">
+                    <div class="research-section-title">🔊 Volume Analysis</div>
+                    <div style="font-size: 12px; color: #0f172a; margin-bottom: 4px;">
+                        ${signal.volumeSignal.description}
+                    </div>
+                    ${signal.volumeSignal.avgVolume > 0 ? `<div style="font-size: 11px; color: var(--muted2);">Ratio: ${signal.volumeSignal.volumeRatio.toFixed(2)}x (${(signal.volumeSignal.avgVolume / 1000000).toFixed(1)}M avg)</div>` : ''}
+                </div>
+                ` : ''}
+
+                <div class="research-section">
+                    <div class="research-section-title">⚡ Market Signal</div>
+                    <div style="font-size: 12px; color: #0f172a;">
+                        <div style="margin-bottom: 6px;"><strong>Signal:</strong> ${signal.signal}</div>
+                        <div style="margin-bottom: 6px;"><strong>Momentum:</strong> ${signal.momentum}</div>
+                        <div style="margin-bottom: 6px;"><strong>Volatility:</strong> ${signal.volatility}</div>
+                        <div><strong>Liquidity:</strong> ${signal.liquidity}</div>
+                    </div>
+                </div>
+            `;
+
+        } catch (error) {
+            content.innerHTML = `<div style="color: #ef4444; font-size: 12px;">Failed to load data: ${error.message}</div>`;
+        }
+    },
+
+    closeResearchPanel() {
+        const panel = document.getElementById('researchPanel');
+        panel.classList.remove('visible');
     }
 };
 

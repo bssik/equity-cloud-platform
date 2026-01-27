@@ -757,6 +757,144 @@
             }
         }
 
+        /* Quick Research Panel */
+        .research-panel {
+            position: fixed;
+            right: -450px;
+            top: 0;
+            width: 450px;
+            height: 100vh;
+            background: var(--card);
+            border-left: 1px solid rgba(226,232,240,.3);
+            box-shadow: -8px 0 24px rgba(0,0,0,.2);
+            transition: right .3s ease;
+            z-index: 2000;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .research-panel.visible {
+            right: 0;
+        }
+
+        .research-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(226,232,240,.3);
+        }
+
+        .research-panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .research-panel-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(100,116,139,.1);
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all .2s;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .research-panel-close:hover {
+            background: rgba(239,68,68,.1);
+            color: #ef4444;
+        }
+
+        .research-quick-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .research-stat {
+            background: rgba(241,245,249,.5);
+            border: 1px solid rgba(226,232,240,.5);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .research-stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--muted2);
+            margin-bottom: 4px;
+        }
+
+        .research-stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .research-section {
+            margin-bottom: 20px;
+        }
+
+        .research-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--muted2);
+            margin-bottom: 12px;
+        }
+
+        .research-action-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 8px 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        .research-action-badge.buy {
+            background: rgba(34,197,94,.15);
+            color: var(--accent3);
+            border: 1px solid rgba(34,197,94,.3);
+        }
+
+        .research-action-badge.hold {
+            background: rgba(100,116,139,.15);
+            color: var(--muted2);
+            border: 1px solid rgba(100,116,139,.3);
+        }
+
+        .research-action-badge.trim {
+            background: rgba(245,158,11,.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245,158,11,.3);
+        }
+
+        .research-action-badge.avoid {
+            background: rgba(239,68,68,.15);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,.3);
+        }
+
+        @media (max-width: 768px) {
+            .research-panel {
+                width: 100vw;
+                right: -100vw;
+            }
+        }
+
         .signal-bar {
             width: 60px;
             height: 6px;
@@ -2096,6 +2234,15 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Quick Research Panel -->
+    <div id="researchPanel" class="research-panel">
+        <div class="research-panel-header">
+            <div class="research-panel-title" id="researchPanelTitle">Loading...</div>
+            <button class="research-panel-close" id="researchPanelClose">✕</button>
+        </div>
+        <div id="researchPanelContent"></div>
     </div>
 
     <script src="app.js"></script>
