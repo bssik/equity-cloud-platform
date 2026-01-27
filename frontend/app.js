@@ -524,6 +524,23 @@ const API = {
         return data;
     },
 
+    async fetchSMA(symbol) {
+        try {
+            const response = await fetch(`/api/sma/${symbol}`);
+
+            if (!response.ok) {
+                console.warn(`SMA data not available for ${symbol}`);
+                return null;
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.warn(`Failed to fetch SMA for ${symbol}:`, error);
+            return null;
+        }
+    },
+
     async fetchMultiple(symbols, onProgress) {
         const results = [];
         const delay = 12000; // 12 seconds between calls (5 per minute = safe)
@@ -569,7 +586,7 @@ const API = {
 // SIGNAL ANALYSIS
 // ============================================
 const SignalAnalyzer = {
-    calculate(quote) {
+    calculate(quote, smaData = null) {
         const price = parseFloat(quote['05. price']);
         const high = parseFloat(quote['03. high']);
         const low = parseFloat(quote['04. low']);
@@ -618,6 +635,9 @@ const SignalAnalyzer = {
         // Volume Breakout Detection
         const volumeSignal = this.detectVolumeBreakout(quote);
 
+        // SMA Analysis
+        const smaSignal = smaData ? this.analyzeSMA(price, smaData) : null;
+
         let signal, signalClass;
         if (volumeSignal.isBreakout && momentum.includes('Bullish')) {
             signal = '🚀 Volume Breakout!';
@@ -640,8 +660,77 @@ const SignalAnalyzer = {
             volatility, volatilityLevel, volatilityPct,
             momentum, liquidity, liquidityLevel,
             signal, signalClass,
-            volumeSignal
+            volumeSignal,
+            smaSignal
         };
+    },
+
+    analyzeSMA(price, smaData) {
+        const sma50 = smaData.sma50;
+        const sma200 = smaData.sma200;
+
+        if (!sma50 && !sma200) {
+            return null;
+        }
+
+        const analysis = {
+            sma50,
+            sma200,
+            distanceTo50: null,
+            distanceTo200: null,
+            distanceTo50Pct: null,
+            distanceTo200Pct: null,
+            crossEvent: null,
+            crossClass: null,
+            position: null,
+            positionClass: null
+        };
+
+        // Calculate distances
+        if (sma50) {
+            analysis.distanceTo50 = price - sma50;
+            analysis.distanceTo50Pct = ((price - sma50) / sma50) * 100;
+        }
+
+        if (sma200) {
+            analysis.distanceTo200 = price - sma200;
+            analysis.distanceTo200Pct = ((price - sma200) / sma200) * 100;
+        }
+
+        // Detect Golden Cross / Death Cross
+        if (sma50 && sma200) {
+            if (sma50 > sma200) {
+                analysis.crossEvent = '🟢 Golden Cross';
+                analysis.crossClass = 'golden';
+            } else if (sma50 < sma200) {
+                analysis.crossEvent = '🔴 Death Cross';
+                analysis.crossClass = 'death';
+            }
+        }
+
+        // Price position relative to SMAs
+        if (sma50 && sma200) {
+            if (price > sma50 && price > sma200) {
+                analysis.position = '↗️ Above Both SMAs';
+                analysis.positionClass = 'bullish';
+            } else if (price < sma50 && price < sma200) {
+                analysis.position = '↘️ Below Both SMAs';
+                analysis.positionClass = 'bearish';
+            } else {
+                analysis.position = '↔️ Between SMAs';
+                analysis.positionClass = 'neutral';
+            }
+        } else if (sma50) {
+            if (price > sma50) {
+                analysis.position = '↗️ Above 50-day SMA';
+                analysis.positionClass = 'bullish';
+            } else {
+                analysis.position = '↘️ Below 50-day SMA';
+                analysis.positionClass = 'bearish';
+            }
+        }
+
+        return analysis;
     },
 
     detectVolumeBreakout(quote) {
@@ -707,7 +796,7 @@ const SignalAnalyzer = {
 // RENDERING
 // ============================================
 const Renderer = {
-    renderSingleQuote(quote, symbol, fetchTime, isCached = false) {
+    renderSingleQuote(quote, symbol, fetchTime, isCached = false, smaData = null) {
         // Handle both old (Global Quote) and new API formats
         const price = quote.price ? parseFloat(quote.price) : parseFloat(quote['05. price']);
         const change = quote.change_percent || quote['10. change percent'];
@@ -723,7 +812,7 @@ const Renderer = {
 
         const watchlist = Storage.getWatchlist();
         const isInWatchlist = watchlist.includes(symbol);
-        const signal = SignalAnalyzer.calculate(quote);
+        const signal = SignalAnalyzer.calculate(quote, smaData);
 
         // Cache age badge
         const cacheAgeSec = isCached ? (Cache.getAge(symbol) ?? 0) : 0;
@@ -755,6 +844,40 @@ const Renderer = {
                     ${volume ? `<div class="detail-item"><span class="detail-label">Volume</span><span class="detail-value">${parseInt(volume).toLocaleString()}</span></div>` : ''}
                     ${tradingDay ? `<div class="detail-item"><span class="detail-label">Trading Day</span><span class="detail-value">${tradingDay}</span></div>` : ''}
                 </div>
+
+                ${signal.smaSignal ? `
+                <div class="sma-section">
+                    <div class="sma-header">
+                        <span class="sma-title">📊 SMA ANALYSIS</span>
+                        ${signal.smaSignal.crossEvent ? `<span class="sma-cross ${signal.smaSignal.crossClass}">${signal.smaSignal.crossEvent}</span>` : ''}
+                    </div>
+                    <div class="sma-grid">
+                        ${signal.smaSignal.sma50 ? `
+                        <div class="sma-item">
+                            <span class="sma-label">50-day SMA</span>
+                            <span class="sma-value">$${signal.smaSignal.sma50.toFixed(2)}</span>
+                            <span class="sma-distance ${signal.smaSignal.distanceTo50Pct > 0 ? 'positive' : 'negative'}">
+                                ${signal.smaSignal.distanceTo50Pct > 0 ? '+' : ''}${signal.smaSignal.distanceTo50Pct.toFixed(2)}%
+                            </span>
+                        </div>
+                        ` : ''}
+                        ${signal.smaSignal.sma200 ? `
+                        <div class="sma-item">
+                            <span class="sma-label">200-day SMA</span>
+                            <span class="sma-value">$${signal.smaSignal.sma200.toFixed(2)}</span>
+                            <span class="sma-distance ${signal.smaSignal.distanceTo200Pct > 0 ? 'positive' : 'negative'}">
+                                ${signal.smaSignal.distanceTo200Pct > 0 ? '+' : ''}${signal.smaSignal.distanceTo200Pct.toFixed(2)}%
+                            </span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ${signal.smaSignal.position ? `
+                    <div class="sma-position ${signal.smaSignal.positionClass}">
+                        ${signal.smaSignal.position}
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
 
                 <div class="signal-section">
                     <div class="signal-header">
@@ -1536,14 +1659,20 @@ const UI = {
 
         try {
             const cachedBefore = Cache.get(symbol);
-            const data = await API.fetchQuote(symbol, true); // Use cache
+
+            // Fetch quote and SMA data in parallel
+            const [data, smaData] = await Promise.all([
+                API.fetchQuote(symbol, true),
+                API.fetchSMA(symbol)
+            ]);
+
             const isCached = !!cachedBefore;
             const quote = data.symbol ? data : data['Global Quote'];
 
             if (quote && (quote.symbol || Object.keys(quote).length > 0)) {
                 Storage.saveToHistory(symbol);
                 Renderer.renderHistory();
-                resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime, isCached);
+                resultDiv.innerHTML = Renderer.renderSingleQuote(quote, symbol, fetchTime, isCached, smaData);
 
                 // Update URL state
                 URLState.setSymbol(symbol);

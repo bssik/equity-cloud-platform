@@ -44,3 +44,43 @@ class StockService:
         except requests.exceptions.RequestException as e:
             logging.error(f"API Connection Error: {str(e)}")
             raise
+
+    def get_sma(self, symbol: str) -> dict:
+        """Fetch 50-day and 200-day SMA data for a symbol"""
+        if not self.api_key:
+            raise ValueError("ALPHA_VANTAGE_API_KEY is missing")
+
+        sma_data = {}
+
+        # Fetch both SMAs
+        for period in [50, 200]:
+            params = {
+                "function": "SMA",
+                "symbol": symbol,
+                "interval": "daily",
+                "time_period": period,
+                "series_type": "close",
+                "apikey": self.api_key
+            }
+
+            try:
+                response = requests.get(self.base_url, params=params, timeout=5)
+                response.raise_for_status()
+                data = response.json()
+
+                technical_data = data.get("Technical Analysis: SMA", {})
+
+                if technical_data:
+                    # Get the most recent SMA value
+                    latest_date = sorted(technical_data.keys(), reverse=True)[0]
+                    sma_value = float(technical_data[latest_date]["SMA"])
+                    sma_data[f"sma{period}"] = sma_value
+                else:
+                    logging.warning(f"No SMA{period} data for {symbol}")
+                    sma_data[f"sma{period}"] = None
+
+            except requests.exceptions.RequestException as e:
+                logging.error(f"SMA{period} API Error: {str(e)}")
+                sma_data[f"sma{period}"] = None
+
+        return sma_data

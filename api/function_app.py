@@ -48,3 +48,40 @@ def get_stock_data_function(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
+
+@app.route(route="sma/{symbol}")
+def get_sma_data_function(req: func.HttpRequest) -> func.HttpResponse:
+    symbol = req.route_params.get('symbol')
+
+    if not symbol:
+        return func.HttpResponse(
+            json.dumps({"error": "Please provide a stock symbol"}),
+            status_code=400,
+            mimetype="application/json"
+        )
+
+    logging.info(f"Processing SMA request for: {symbol}")
+
+    try:
+        stock_service = StockService()
+        sma_data = stock_service.get_sma(symbol)
+
+        return func.HttpResponse(
+            json.dumps(sma_data),
+            status_code=200,
+            mimetype="application/json"
+        )
+
+    except ValueError as ve:
+        return func.HttpResponse(
+            json.dumps({"error": str(ve)}),
+            status_code=404,
+            mimetype="application/json"
+        )
+    except Exception as e:
+        logging.error(f"SMA Error: {str(e)}")
+        return func.HttpResponse(
+            json.dumps({"error": "Internal server error processing SMA request"}),
+            status_code=500,
+            mimetype="application/json"
+        )
