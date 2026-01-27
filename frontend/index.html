@@ -112,6 +112,73 @@
             color: #cbd5e1;
         }
 
+        .hero-section {
+            background: linear-gradient(135deg, rgba(37,99,235,.1), rgba(6,182,212,.08));
+            border: 1px solid rgba(226,232,240,.2);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-description {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--muted2);
+            margin: 0 0 24px 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-features {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .feature-badge {
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 24px 20px;
+            }
+
+            .hero-title {
+                font-size: 22px;
+            }
+
+            .hero-description {
+                font-size: 14px;
+            }
+
+            .feature-badge {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+
         .mark {
             width: 42px;
             height: 42px;
@@ -1604,12 +1671,26 @@
             <span class="brand-text">EquityCloud Analytics</span>
         </div>
 
+        <div class="hero-section">
+            <h2 class="hero-title">Cloud-Native Stock Market Intelligence</h2>
+            <p class="hero-description">
+                A serverless financial data platform built on Azure, demonstrating enterprise-grade architecture with real-time market data,
+                intelligent caching, and responsive design. Perfect for exploring how modern cloud infrastructure powers data-driven applications.
+            </p>
+            <div class="hero-features">
+                <div class="feature-badge">⚡ Serverless Azure Functions</div>
+                <div class="feature-badge">📊 Real-Time Market Data</div>
+                <div class="feature-badge">🔄 Smart Caching</div>
+                <div class="feature-badge">📱 Mobile-Optimized</div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-content">
                 <div class="header-row">
                     <div class="header-left">
                         <h1>Real-Time Market Data</h1>
-                        <p class="subtitle">Enter a ticker symbol to fetch live stock quotes powered by Azure <span class="kbd-hint" title="Press / to focus input">Press /</span></p>
+                        <p class="subtitle">Live stock quotes powered by Azure Functions & Alpha Vantage API</p>
                     </div>
                     <div class="header-right">
                         <div class="header-actions">
