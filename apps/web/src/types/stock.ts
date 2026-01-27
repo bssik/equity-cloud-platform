@@ -1,6 +1,6 @@
 export interface StockQuote {
   symbol: string;
-  price: string;
+  price: number;
   change_percent: string;
   volume: string;
   open: string;
@@ -16,4 +16,13 @@ export interface NewsArticle {
   source: string;
   datetime: number;
   image: string;
+}
+
+export interface StockHistoryItem {
+  date: string;
+  close: number;
+}
+
+export interface StockHistoryResponse {
+  history: StockHistoryItem[];
 }
