@@ -2,7 +2,7 @@
 
 EquityCloud is a small Azure project I built to practice deploying a simple web app end-to-end: frontend + serverless API + automated deploys.
 
-Live demo: https://black-stone-0e8040d03.5.azurestaticapps.net
+Live demo: https://black-stone-0e8040d03.6.azurestaticapps.net
 
 ## What it does
 
