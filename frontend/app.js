@@ -1551,10 +1551,13 @@ const UI = {
                 chip.addEventListener('click', (e) => {
                     const symbol = e.target.dataset.symbol;
                     if (symbol) {
-                        // Right-click or Ctrl+click opens research panel
+                        // Ctrl+click (or Cmd+click on Mac) opens research panel
                         if (e.ctrlKey || e.metaKey) {
+                            e.preventDefault();
+                            console.log('Ctrl+Click detected, opening research panel for', symbol);
                             this.openResearchPanel(symbol);
                         } else {
+                            console.log('Regular click detected, selecting symbol', symbol);
                             this.selectSymbol(symbol);
                         }
                     }
