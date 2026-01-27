@@ -1,6 +1,18 @@
 {
   "routes": [
     {
+      "route": "/index.html",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
+      "route": "/app.js",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["anonymous"]
     },
