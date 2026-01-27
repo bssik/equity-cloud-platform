@@ -10,7 +10,8 @@ const AppState = {
     minApiInterval: 12000, // 12 seconds between API calls
     isMobile: false,
     isTablet: false,
-    screenWidth: window.innerWidth
+    screenWidth: window.innerWidth,
+    volumeHistory: {} // Track volume history per symbol for breakout detection
 };
 
 // ============================================
@@ -614,8 +615,14 @@ const SignalAnalyzer = {
             liquidityLevel = 'low';
         }
 
+        // Volume Breakout Detection
+        const volumeSignal = this.detectVolumeBreakout(quote);
+
         let signal, signalClass;
-        if (momentum.includes('Bullish') && volatility !== 'High') {
+        if (volumeSignal.isBreakout && momentum.includes('Bullish')) {
+            signal = '🚀 Volume Breakout!';
+            signalClass = 'breakout';
+        } else if (momentum.includes('Bullish') && volatility !== 'High') {
             signal = '🚀 Trending Up';
             signalClass = 'bullish';
         } else if (momentum.includes('Bearish')) {
@@ -632,7 +639,66 @@ const SignalAnalyzer = {
         return {
             volatility, volatilityLevel, volatilityPct,
             momentum, liquidity, liquidityLevel,
-            signal, signalClass
+            signal, signalClass,
+            volumeSignal
+        };
+    },
+
+    detectVolumeBreakout(quote) {
+        const symbol = quote.symbol || quote['01. symbol'];
+        const volume = parseInt(quote['06. volume']);
+
+        // Initialize or get volume history for this symbol
+        if (!AppState.volumeHistory[symbol]) {
+            AppState.volumeHistory[symbol] = [];
+        }
+
+        const history = AppState.volumeHistory[symbol];
+
+        // Add current volume to history
+        history.push(volume);
+
+        // Keep only last 20 days
+        if (history.length > 20) {
+            history.shift();
+        }
+
+        // Need at least 5 days of history to calculate
+        if (history.length < 5) {
+            return {
+                isBreakout: false,
+                avgVolume: volume,
+                volumeRatio: 1.0,
+                description: 'Insufficient data'
+            };
+        }
+
+        // Calculate 20-day average (excluding today)
+        const historicalVolumes = history.slice(0, -1);
+        const avgVolume = historicalVolumes.reduce((sum, v) => sum + v, 0) / historicalVolumes.length;
+        const volumeRatio = volume / avgVolume;
+
+        // Stage 3 entry signal: >150% of average
+        const isBreakout = volumeRatio > 1.5;
+
+        let description;
+        if (volumeRatio > 2.0) {
+            description = '🔥 Extreme Volume (2x+ avg)';
+        } else if (volumeRatio > 1.5) {
+            description = '📊 High Volume (Stage 3 Entry)';
+        } else if (volumeRatio > 1.2) {
+            description = '📈 Above Average Volume';
+        } else if (volumeRatio < 0.5) {
+            description = '📉 Very Low Volume';
+        } else {
+            description = '➡️ Normal Volume';
+        }
+
+        return {
+            isBreakout,
+            avgVolume: Math.round(avgVolume),
+            volumeRatio,
+            description
         };
     }
 };
@@ -713,6 +779,15 @@ const Renderer = {
                                 <div class="signal-bar"><div class="signal-bar-fill ${signal.liquidityLevel}" style="width: ${signal.liquidityLevel === 'high' ? 100 : signal.liquidityLevel === 'medium' ? 60 : 30}%"></div></div>
                             </span>
                         </div>
+                        ${signal.volumeSignal ? `
+                        <div class="signal-indicator">
+                            <span class="signal-label">Volume Activity</span>
+                            <span class="signal-value" style="font-size: 11px;">
+                                ${signal.volumeSignal.description}
+                                ${signal.volumeSignal.avgVolume > 0 ? `<div style="font-size: 10px; color: var(--muted2); margin-top: 2px;">${signal.volumeSignal.volumeRatio.toFixed(2)}x average (${(signal.volumeSignal.avgVolume / 1000000).toFixed(1)}M avg)</div>` : ''}
+                            </span>
+                        </div>
+                        ` : ''}
                     </div>
                     <div class="signal-badge ${signal.signalClass}">${signal.signal}</div>
                 </div>
