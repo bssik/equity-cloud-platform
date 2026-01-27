@@ -1122,11 +1122,16 @@ const UI = {
         const exampleSymbols = ['MSFT', 'AAPL', 'GOOGL', 'TSLA', 'NVDA'];
         const container = document.getElementById('exampleChips');
 
+        console.log('renderExampleChips called, container:', container);
+
         if (container) {
             container.innerHTML = exampleSymbols.map(symbol => {
                 const companyName = CompanyNames.get(symbol);
+                console.log(`Rendering ${symbol} as ${companyName}`);
                 return `<span class="example-chip" data-symbol="${symbol}">${companyName}</span>`;
             }).join('');
+
+            console.log('Example chips rendered:', container.innerHTML);
 
             // Attach event listeners
             container.querySelectorAll('.example-chip').forEach(chip => {
@@ -1145,6 +1150,8 @@ const UI = {
                     }, { passive: true });
                 }
             });
+        } else {
+            console.error('exampleChips container not found!');
         }
     },
 
