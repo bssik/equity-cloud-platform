@@ -1,19 +1,33 @@
 import azure.functions as func
 import requests
 import os
+import json
 
 app = func.FunctionApp()
 
-@app.route(route="get_stock_data", auth_level=func.AuthLevel.ANONYMOUS)
-def get_stock_data(req: func.HttpRequest) -> func.HttpResponse:
-    # 1. Get the API Key from Azure Environment Variables
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
-    symbol = req.params.get('symbol', 'MSFT') # Default to Microsoft
+@app.route(route="quote/{symbol}", auth_level=func.AuthLevel.ANONYMOUS)
+def get_stock_quote(req: func.HttpRequest) -> func.HttpResponse:
+    # Get symbol from route parameter
+    symbol = req.route_params.get('symbol')
     
-    # 2. Call the Alpha Vantage API
+    # Get API key from Azure environment variables
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
+    
+    if not api_key:
+        return func.HttpResponse(
+            json.dumps({"error": "API key not configured"}),
+            status_code=500,
+            mimetype="application/json"
+        )
+    
+    # Call Alpha Vantage API
     url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={api_key}"
     response = requests.get(url)
     data = response.json()
 
-    # 3. Return the data to our website
-    return func.HttpResponse(str(data), mimetype="application/json")
+    # Return proper JSON response
+    return func.HttpResponse(
+        json.dumps(data),
+        status_code=200,
+        mimetype="application/json"
+    )
