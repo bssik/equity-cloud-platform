@@ -1,0 +1,20 @@
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class StockQuote(BaseModel):
+    symbol: str = Field(..., description="The ticker symbol (e.g., MSFT)")
+    price: float = Field(..., description="Current trading price")
+    change_percent: str = Field(..., description="Percentage change with sign")
+    volume: Optional[str] = Field(None, description="Trading volume")
+    cached: bool = Field(False, description="Whether data was served from cache")
+
+class AIAnalysisRequest(BaseModel):
+    symbol: str
+    quote: StockQuote
+
+# This will be the response structure for our future AI endpoint
+class StockAnalysis(BaseModel):
+    symbol: str
+    sentiment: str = Field(..., description="Bullish, Bearish, or Neutral")
+    reasoning: str = Field(..., description="AI-generated explanation")
+    confidence_score: float

@@ -1,33 +1,50 @@
 import azure.functions as func
-import requests
-import os
+import logging
 import json
+from services.stock_service import StockService
 
-app = func.FunctionApp()
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-@app.route(route="quote/{symbol}", auth_level=func.AuthLevel.ANONYMOUS)
-def get_stock_quote(req: func.HttpRequest) -> func.HttpResponse:
-    # Get symbol from route parameter
+@app.route(route="quote/{symbol}")
+def get_stock_data_function(req: func.HttpRequest) -> func.HttpResponse:
     symbol = req.route_params.get('symbol')
 
-    # Get API key from Azure environment variables
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
-
-    if not api_key:
+    if not symbol:
         return func.HttpResponse(
-            json.dumps({"error": "API key not configured"}),
-            status_code=500,
+            json.dumps({"error": "Please provide a stock symbol"}),
+            status_code=400,
             mimetype="application/json"
         )
 
-    # Call Alpha Vantage API
-    url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={api_key}"
-    response = requests.get(url)
-    data = response.json()
+    logging.info(f"Processing quote request for: {symbol}")
 
-    # Return proper JSON response
-    return func.HttpResponse(
-        json.dumps(data),
-        status_code=200,
-        mimetype="application/json"
-    )
+    try:
+        # Initialize Service (Lazy Initialization - only when needed)
+        stock_service = StockService()
+
+        # Execution
+        quote_model = stock_service.get_quote(symbol)
+
+        # Serialize Pydantic model to JSON
+        return func.HttpResponse(
+            quote_model.model_dump_json(),
+            status_code=200,
+            mimetype="application/json"
+        )
+
+    except ValueError as ve:
+        # Client Error (Bad Input / Not Found)
+        return func.HttpResponse(
+            json.dumps({"error": str(ve)}),
+            status_code=404,
+            mimetype="application/json"
+        )
+    except Exception as e:
+        # Server Error (System Failure)
+        logging.error(f"Internal Error: {str(e)}")
+        # Security: Generic 500 message to client, detailed error in logs
+        return func.HttpResponse(
+            json.dumps({"error": "Internal server error processing request"}),
+            status_code=500,
+            mimetype="application/json"
+        )
