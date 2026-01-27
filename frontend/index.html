@@ -124,15 +124,47 @@
             margin-bottom: 24px;
         }
 
-        input {
+        .input-wrapper {
             flex: 1;
-            padding: 14px 16px;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 40px 14px 16px;
             border: 1px solid rgba(226,232,240,.9);
             border-radius: 12px;
             background: rgba(241,245,249,.75);
             color: #0f172a;
             font-size: 14px;
+            text-transform: uppercase;
             transition: all .2s ease;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+
+        .clear-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .clear-btn:hover {
+            color: var(--accent);
+            transform: translateY(-50%) scale(1.1);
         }
 
         input:focus {
@@ -235,6 +267,15 @@
             font-size: 13px;
         }
 
+        .timestamp {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(226,232,240,.95);
+            font-size: 11px;
+            color: var(--muted2);
+            text-align: center;
+        }
+
         .spinner {
             width: 32px;
             height: 32px;
@@ -320,7 +361,10 @@
                 </div>
 
                 <div class="search-box">
-                    <input type="text" id="symbolInput" placeholder="Enter ticker symbol" onkeypress="if(event.key==='Enter') fetchStock()" maxlength="6">
+                    <div class="input-wrapper">
+                        <input type="text" id="symbolInput" placeholder="Enter ticker symbol" oninput="handleInput(this)" onkeypress="if(event.key==='Enter') fetchStock()" maxlength="6">
+                        <button class="clear-btn" id="clearBtn" onclick="clearInput()" title="Clear">✕</button>
+                    </div>
                     <button id="searchBtn" onclick="fetchStock()">Search</button>
                 </div>
 
@@ -332,8 +376,21 @@
     </div>
 
     <script>
+        function handleInput(input) {
+            const clearBtn = document.getElementById('clearBtn');
+            clearBtn.classList.toggle('visible', input.value.length > 0);
+        }
+
+        function clearInput() {
+            const input = document.getElementById('symbolInput');
+            input.value = '';
+            document.getElementById('clearBtn').classList.remove('visible');
+            input.focus();
+        }
+
         function selectSymbol(symbol) {
             document.getElementById('symbolInput').value = symbol;
+            handleInput(document.getElementById('symbolInput'));
             fetchStock();
         }
 
@@ -359,18 +416,29 @@
             searchBtn.disabled = true;
             resultDiv.innerHTML = '<div class="spinner"></div>';
 
+            const fetchTime = new Date();
+
             try {
                 const response = await fetch(`/api/quote/${symbol}`);
 
-                if (!response.ok) throw new Error('API Error');
+                if (!response.ok) {
+                    if (response.status === 429) {
+                        throw new Error('Rate limit exceeded. Please wait a moment.');
+                    } else if (response.status === 500) {
+                        throw new Error('Server error. API key may be missing or invalid.');
+                    } else {
+                        throw new Error('Network error. Please check your connection.');
+                    }
+                }
 
                 const data = await response.json();
                 const quote = data['Global Quote'];
 
-                if (quote) {
+                if (quote && Object.keys(quote).length > 0) {
                     const price = parseFloat(quote['05. price']);
                     const change = quote['10. change percent'];
                     const isPositive = !change.startsWith('-');
+                    const timeStr = fetchTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
                     resultDiv.innerHTML = `
                         <div class="quote-grid">
@@ -388,13 +456,16 @@
                                     ${isPositive ? '+' : ''}${change}
                                 </span>
                             </div>
+                            <div class="timestamp">Last updated at ${timeStr}</div>
                         </div>
                     `;
+                } else if (data.Note && data.Note.includes('API call frequency')) {
+                    resultDiv.innerHTML = '<span class="error">API rate limit reached. Please try again in a minute.</span>';
                 } else {
-                    resultDiv.innerHTML = '<span class="error">Symbol not found or API limit reached</span>';
+                    resultDiv.innerHTML = '<span class="error">Symbol not found. Check the ticker and try again.</span>';
                 }
             } catch (error) {
-                resultDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                resultDiv.innerHTML = `<span class="error">${error.message}</span>`;
             } finally {
                 // Re-enable button
                 searchBtn.disabled = false;
