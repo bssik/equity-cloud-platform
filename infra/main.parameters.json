@@ -17,6 +17,9 @@
     "staticWebAppNameOverride": {
       "value": "stapp-equity-web"
     },
+    "staticWebAppLocationOverride": {
+      "value": "westeurope"
+    },
     "alphaVantageApiKey": {
       "reference": {
         "keyVault": {

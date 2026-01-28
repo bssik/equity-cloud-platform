@@ -38,12 +38,16 @@ param keyVaultLocationOverride string = ''
 @description('Override for Static Web App Name (optional)')
 param staticWebAppNameOverride string = ''
 
+@description('Override for Static Web App Location (optional)')
+param staticWebAppLocationOverride string = ''
+
 // =====================================================
 // Naming Variables
 // =====================================================
 
 var regionAbbreviation = 'weu'
 var staticWebAppName = !empty(staticWebAppNameOverride) ? staticWebAppNameOverride : 'stapp-${projectName}-${environment}-${regionAbbreviation}'
+var staticWebAppLocation = !empty(staticWebAppLocationOverride) ? staticWebAppLocationOverride : location
 var functionAppName = 'func-${projectName}-${environment}-${regionAbbreviation}'
 var storageAccountName = 'st${projectName}${environment}${regionAbbreviation}'
 var keyVaultName = !empty(keyVaultNameOverride) ? keyVaultNameOverride : 'kv-${projectName}-${environment}-${regionAbbreviation}'
@@ -70,7 +74,7 @@ module staticWebApp './modules/staticwebapp.bicep' = {
   name: 'deploy-static-web-app'
   params: {
     name: staticWebAppName
-    location: location
+    location: staticWebAppLocation
     sku: 'Free'
     tags: {
       Environment: environment
