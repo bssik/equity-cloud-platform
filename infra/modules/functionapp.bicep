@@ -128,3 +128,4 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
 // Outputs for other modules or CI/CD pipelines
 output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
 output principalId string = functionApp.identity.principalId
+output functionAppName string = functionApp.name
