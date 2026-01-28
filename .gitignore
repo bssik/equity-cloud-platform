@@ -38,8 +38,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-# lib/ - Commented out as it conflicts with frontend code (apps/web/src/lib)
-# lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
