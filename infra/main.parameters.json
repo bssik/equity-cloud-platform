@@ -8,6 +8,15 @@
     "projectName": {
       "value": "equitycloud"
     },
+    "keyVaultNameOverride": {
+      "value": "kv-equity-vault-01"
+    },
+    "keyVaultLocationOverride": {
+      "value": "switzerlandnorth"
+    },
+    "staticWebAppNameOverride": {
+      "value": "stapp-equity-web"
+    },
     "alphaVantageApiKey": {
       "reference": {
         "keyVault": {

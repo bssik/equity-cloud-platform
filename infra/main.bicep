@@ -29,15 +29,25 @@ param alphaVantageApiKey string
 @secure()
 param finnhubApiKey string
 
+@description('Override for Key Vault Name (optional)')
+param keyVaultNameOverride string = ''
+
+@description('Override for Key Vault Location (optional)')
+param keyVaultLocationOverride string = ''
+
+@description('Override for Static Web App Name (optional)')
+param staticWebAppNameOverride string = ''
+
 // =====================================================
 // Naming Variables
 // =====================================================
 
 var regionAbbreviation = 'weu'
-var staticWebAppName = 'stapp-${projectName}-${environment}-${regionAbbreviation}'
+var staticWebAppName = !empty(staticWebAppNameOverride) ? staticWebAppNameOverride : 'stapp-${projectName}-${environment}-${regionAbbreviation}'
 var functionAppName = 'func-${projectName}-${environment}-${regionAbbreviation}'
 var storageAccountName = 'st${projectName}${environment}${regionAbbreviation}'
-var keyVaultName = 'kv-${projectName}-${environment}-${regionAbbreviation}'
+var keyVaultName = !empty(keyVaultNameOverride) ? keyVaultNameOverride : 'kv-${projectName}-${environment}-${regionAbbreviation}'
+var keyVaultLocation = !empty(keyVaultLocationOverride) ? keyVaultLocationOverride : location
 
 // =====================================================
 // Resources
@@ -91,7 +101,7 @@ module keyVault './modules/keyvault.bicep' = {
   name: 'deploy-key-vault'
   params: {
     name: keyVaultName
-    location: location
+    location: keyVaultLocation
     functionAppPrincipalId: functionApp.outputs.principalId
     alphaVantageApiKey: alphaVantageApiKey
     finnhubApiKey: finnhubApiKey
