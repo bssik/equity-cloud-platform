@@ -47,6 +47,7 @@ jobs:
           resourceGroupName: ${{ secrets.AZURE_RG_NAME }}
           template: ./infra/main.bicep
           parameters: >
+            ./infra/main.parameters.json
             environment=${{ inputs.environment || 'dev' }}
             alphaVantageApiKey=${{ secrets.ALPHA_VANTAGE_API_KEY }}
             finnhubApiKey=${{ secrets.FINNHUB_API_KEY }}
