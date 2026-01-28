@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { fetchQuote } from '@/lib/api';
-import { StockQuote } from '@/types/stock';
+import { fetchQuote } from '../lib/api';
+import { StockQuote } from '../types/stock';
 import NewsList from './NewsList';
 import PriceChart from './PriceChart';
 
