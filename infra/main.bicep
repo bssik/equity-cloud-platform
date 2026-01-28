@@ -93,7 +93,9 @@ module functionApp './modules/functionapp.bicep' = {
     storageAccountName: storageAccountName
     keyVaultName: keyVaultName
     appInsightsConnectionString: observability.outputs.connectionString
-    allowedOrigin: 'https://${staticWebApp.outputs.defaultHostname}'
+    allowedOrigins: [
+      'https://${staticWebApp.outputs.defaultHostname}'
+    ]
     tags: {
       Environment: environment
       Project: 'EquityCloud'

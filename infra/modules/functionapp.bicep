@@ -28,8 +28,8 @@ param appInsightsConnectionString string = ''
 @description('Key Vault Name to reference secrets')
 param keyVaultName string
 
-@description('Allowed Origin for CORS (e.g. Static Web App URL)')
-param allowedOrigin string = '*'
+@description('Allowed CORS origins (e.g. Static Web App URL)')
+param allowedOrigins array = []
 
 // Storage account needed for function app state and logs
 
@@ -78,11 +78,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'Python|3.11'
-      cors: {
-        allowedOrigins: [
-          allowedOrigin
-        ]
-      }
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
@@ -118,11 +113,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         }
       ]
       cors: {
-        allowedOrigins: [
-          'https://black-stone-0e8040d03.6.azurestaticapps.net'
-          'http://localhost:3000'
-          'http://localhost:4280'
-        ]
+        allowedOrigins: allowedOrigins
         supportCredentials: false
       }
       ftpsState: 'Disabled'
