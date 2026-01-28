@@ -25,13 +25,8 @@ param storageAccountName string
 @description('Application Insights connection string')
 param appInsightsConnectionString string = ''
 
-@description('Alpha Vantage API Key')
-@secure()
-param alphaVantageApiKey string
-
-@description('Finnhub API Key')
-@secure()
-param finnhubApiKey string
+@description('Key Vault Name to reference secrets')
+param keyVaultName string
 
 // Storage account needed for function app state and logs
 
@@ -67,11 +62,14 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 
 // =====================================================
 // Function App
-// The actual function app with all settings and secrets{
+resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: name
   location: location
   tags: tags
   kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
@@ -100,11 +98,11 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
         }
         {
           name: 'ALPHA_VANTAGE_API_KEY'
-          value: alphaVantageApiKey
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ALPHA-VANTAGE-API-KEY)'
         }
         {
           name: 'FINNHUB_API_KEY'
-          value: finnhubApiKey
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=FINNHUB-API-KEY)'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'

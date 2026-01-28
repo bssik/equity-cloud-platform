@@ -37,10 +37,24 @@ var regionAbbreviation = 'weu'
 var staticWebAppName = 'stapp-${projectName}-${environment}-${regionAbbreviation}'
 var functionAppName = 'func-${projectName}-${environment}-${regionAbbreviation}'
 var storageAccountName = 'st${projectName}${environment}${regionAbbreviation}'
+var keyVaultName = 'kv-${projectName}-${environment}-${regionAbbreviation}'
 
 // =====================================================
 // Resources
 // =====================================================
+
+module observability './modules/loganalytics.bicep' = {
+  name: 'deploy-observability'
+  params: {
+    name: projectName
+    location: location
+    tags: {
+      Environment: environment
+      Project: 'EquityCloud'
+      ManagedBy: 'Bicep'
+    }
+  }
+}
 
 module staticWebApp './modules/staticwebapp.bicep' = {
   name: 'deploy-static-web-app'
@@ -63,6 +77,22 @@ module functionApp './modules/functionapp.bicep' = {
     location: location
     sku: 'Y1'
     storageAccountName: storageAccountName
+    keyVaultName: keyVaultName
+    appInsightsConnectionString: observability.outputs.connectionString
+    tags: {
+      Environment: environment
+      Project: 'EquityCloud'
+      ManagedBy: 'Bicep'
+    }
+  }
+}
+
+module keyVault './modules/keyvault.bicep' = {
+  name: 'deploy-key-vault'
+  params: {
+    name: keyVaultName
+    location: location
+    functionAppPrincipalId: functionApp.outputs.principalId
     alphaVantageApiKey: alphaVantageApiKey
     finnhubApiKey: finnhubApiKey
     tags: {
