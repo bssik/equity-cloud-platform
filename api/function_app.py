@@ -144,7 +144,7 @@ def get_stock_history_function(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         stock_service = StockService()
-        history_data = stock_service.get_daily_prices(symbol)
+        history_data = stock_service.get_full_chart_data(symbol)
 
         return func.HttpResponse(
             json.dumps(history_data),

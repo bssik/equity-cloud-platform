@@ -138,3 +138,32 @@ class StockService:
         except requests.exceptions.RequestException as e:
             logging.error(f"Daily Price API Error: {str(e)}")
             raise
+
+    def get_full_chart_data(self, symbol: str) -> dict:
+        """
+        Aggregates daily prices and technical indicators (SMA) into a single dataset.
+        This provides a 'pre-joined' view for the frontend, reducing client-side logic.
+        """
+        # Fetch both in parallel would be nice, but for now we'll do it sequentially
+        # as we are limited by the simple 'requests' library in this context.
+        prices_data = self.get_daily_prices(symbol)
+        sma_data = self.get_sma(symbol)
+
+        history = prices_data.get("history", [])
+
+        # Join SMA values into the history list where dates match
+        for item in history:
+            date = item["date"]
+            if "sma50_values" in sma_data and date in sma_data["sma50_values"]:
+                item["sma50"] = float(sma_data["sma50_values"][date])
+            if "sma200_values" in sma_data and date in sma_data["sma200_values"]:
+                item["sma200"] = float(sma_data["sma200_values"][date])
+
+        return {
+            "symbol": symbol.upper(),
+            "history": history,
+            "latest_sma": {
+                "sma50": sma_data.get("sma50"),
+                "sma200": sma_data.get("sma200")
+            }
+        }

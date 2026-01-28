@@ -4,6 +4,7 @@
 
 # Config & Docs
 *.instructions.md
+copilot-instructions.md
 PROJECT_STATE.md
 PROJECT_CONTEXT.md
 .github/prompts/

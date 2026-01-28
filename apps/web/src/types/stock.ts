@@ -21,8 +21,15 @@ export interface NewsArticle {
 export interface StockHistoryItem {
   date: string;
   close: number;
+  sma50?: number;
+  sma200?: number;
 }
 
 export interface StockHistoryResponse {
+  symbol: string;
   history: StockHistoryItem[];
+  latest_sma: {
+    sma50: number | null;
+    sma200: number | null;
+  };
 }

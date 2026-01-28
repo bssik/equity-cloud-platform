@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { fetchQuote } from '@/lib/api';
 import { StockQuote } from '@/types/stock';
 import NewsList from './NewsList';
+import PriceChart from './PriceChart';
 
 export default function StockSearch() {
   const [symbol, setSymbol] = useState('');
@@ -104,6 +105,9 @@ export default function StockSearch() {
           </div>
         </div>
       )}
+
+      {/* Price Chart */}
+      {quote && <PriceChart symbol={quote.symbol} />}
 
       {/* News List */}
       {quote && <NewsList symbol={quote.symbol} />}
