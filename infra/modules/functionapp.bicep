@@ -28,6 +28,9 @@ param appInsightsConnectionString string = ''
 @description('Key Vault Name to reference secrets')
 param keyVaultName string
 
+@description('Allowed Origin for CORS (e.g. Static Web App URL)')
+param allowedOrigin string = '*'
+
 // Storage account needed for function app state and logs
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
@@ -75,6 +78,11 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'Python|3.11'
+      cors: {
+        allowedOrigins: [
+          allowedOrigin
+        ]
+      }
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
