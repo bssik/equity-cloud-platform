@@ -41,6 +41,9 @@ param staticWebAppNameOverride string = ''
 @description('Override for Static Web App Location (optional)')
 param staticWebAppLocationOverride string = ''
 
+@description('Override for Function App Location (optional)')
+param functionAppLocationOverride string = ''
+
 // =====================================================
 // Naming Variables
 // =====================================================
@@ -49,6 +52,7 @@ var regionAbbreviation = 'weu'
 var staticWebAppName = !empty(staticWebAppNameOverride) ? staticWebAppNameOverride : 'stapp-${projectName}-${environment}-${regionAbbreviation}'
 var staticWebAppLocation = !empty(staticWebAppLocationOverride) ? staticWebAppLocationOverride : location
 var functionAppName = 'func-${projectName}-${environment}-${regionAbbreviation}'
+var functionAppLocation = !empty(functionAppLocationOverride) ? functionAppLocationOverride : location
 var storageAccountName = 'st${projectName}${environment}${regionAbbreviation}'
 var keyVaultName = !empty(keyVaultNameOverride) ? keyVaultNameOverride : 'kv-${projectName}-${environment}-${regionAbbreviation}'
 var keyVaultLocation = !empty(keyVaultLocationOverride) ? keyVaultLocationOverride : location
@@ -87,7 +91,7 @@ module staticWebApp './modules/staticwebapp.bicep' = {
 module functionApp './modules/functionapp.bicep' = {
   name: 'deploy-function-app'
   params: {
-    name: functionAppName
+    name: funcfunctionAppLionAppName
     location: location
     sku: 'Y1'
     storageAccountName: storageAccountName

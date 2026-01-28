@@ -20,6 +20,9 @@
     "staticWebAppLocationOverride": {
       "value": "westeurope"
     },
+    "functionAppLocationOverride": {
+      "value": "westeurope"
+    },
     "alphaVantageApiKey": {
       "reference": {
         "keyVault": {
