@@ -28,19 +28,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       name: 'standard'
     }
     tenantId: subscription().tenantId
-    enableRbacAuthorization: false // Using access policies for simplicity in this baseline, though RBAC is often preferred
-    accessPolicies: [
-      {
-        tenantId: subscription().tenantId
-        objectId: functionAppPrincipalId
-        permissions: {
-          secrets: [
-            'get'
-            'list'
-          ]
-        }
-      }
-    ]
     enabledForDeployment: false
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: true
