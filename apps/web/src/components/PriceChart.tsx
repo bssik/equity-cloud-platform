@@ -13,7 +13,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { fetchHistory } from '../lib/api';
+import { fetchHistory } from '../lib/stockApi';
 
 ChartJS.register(
   CategoryScale,

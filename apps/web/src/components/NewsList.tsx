@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchNews } from '../lib/api';
+import { fetchNews } from '../lib/stockApi';
 import { NewsArticle } from '../types/stock';
 
 interface NewsListProps {
