@@ -1,15 +1,28 @@
 name: Azure Static Web Apps CI/CD
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
       - develop
+    paths:
+      - 'apps/web/**'
+      - 'frontend/**'
+      - 'api/**'
+      - 'staticwebapp.config.json'
+      - '.github/workflows/azure-static-web-apps-black-stone-0e8040d03.yml'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
       - develop
+    paths:
+      - 'apps/web/**'
+      - 'frontend/**'
+      - 'api/**'
+      - 'staticwebapp.config.json'
+      - '.github/workflows/azure-static-web-apps-black-stone-0e8040d03.yml'
 
 jobs:
   build_and_deploy_production:
