@@ -9,9 +9,6 @@ param name string
 param location string
 param tags object = {}
 
-@description('The principal ID of the Function App to grant access')
-param functionAppPrincipalId string
-
 @secure()
 param alphaVantageApiKey string
 
@@ -28,6 +25,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       name: 'standard'
     }
     tenantId: subscription().tenantId
+    accessPolicies: []
     enabledForDeployment: false
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: true

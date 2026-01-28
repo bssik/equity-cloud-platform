@@ -113,7 +113,6 @@ module keyVault './modules/keyvault.bicep' = {
   params: {
     name: keyVaultName
     location: keyVaultLocation
-    functionAppPrincipalId: functionApp.outputs.principalId
     alphaVantageApiKey: alphaVantageApiKey
     finnhubApiKey: finnhubApiKey
     tags: {
