@@ -59,6 +59,8 @@ jobs:
           output_location: ""
           skip_api_build: true
           deployment_environment: "dev"
+        env:
+          NEXT_PUBLIC_API_URL: "https://func-equitycloud-dev-weu.azurewebsites.net/api"
 
   build_and_deploy_preview:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
