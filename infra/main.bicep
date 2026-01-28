@@ -91,8 +91,8 @@ module staticWebApp './modules/staticwebapp.bicep' = {
 module functionApp './modules/functionapp.bicep' = {
   name: 'deploy-function-app'
   params: {
-    name: funcfunctionAppLionAppName
-    location: location
+    name: functionAppName
+    location: functionAppLocation
     sku: 'Y1'
     storageAccountName: storageAccountName
     keyVaultName: keyVaultName
