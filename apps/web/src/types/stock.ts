@@ -1,8 +1,8 @@
 export interface StockQuote {
   symbol: string;
   price: number;
-  change_percent: string;
-  volume: string;
+  change_percent: number;
+  volume: number;
   open: number;
   high: number;
   low: number;

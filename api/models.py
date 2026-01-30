@@ -4,8 +4,8 @@ from typing import Optional
 class StockQuote(BaseModel):
     symbol: str = Field(..., description="The ticker symbol (e.g., MSFT)")
     price: float = Field(..., description="Current trading price")
-    change_percent: str = Field(..., description="Percentage change with sign")
-    volume: Optional[str] = Field(None, description="Trading volume")
+    change_percent: float = Field(..., description="Percentage change")
+    volume: int = Field(0, description="Trading volume")
     open: Optional[float] = Field(None, description="Opening price")
     high: Optional[float] = Field(None, description="Day high")
     low: Optional[float] = Field(None, description="Day low")

@@ -12,6 +12,7 @@ PROJECT_CONTEXT.md
 *-NOTES.md
 docs/*.md
 docs/*.html
+docs/retrospectives/
 
 # Azure & Environment Secrets
 local.settings.json

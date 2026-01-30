@@ -99,6 +99,7 @@ module functionApp './modules/functionapp.bicep' = {
     appInsightsConnectionString: observability.outputs.connectionString
     allowedOrigins: [
       'https://${staticWebApp.outputs.defaultHostname}'
+      'https://black-stone-0e8040d03-dev.westeurope.6.azurestaticapps.net'
     ]
     tags: {
       Environment: environment
