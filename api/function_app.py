@@ -346,6 +346,15 @@ def watchlist_by_id(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json",
         )
 
+    except RuntimeError as re:
+        # Typically raised for missing/unavailable storage configuration.
+        logging.error("Watchlist by id runtime error: %s", str(re))
+        return func.HttpResponse(
+            json.dumps({"error": str(re)}),
+            status_code=503,
+            mimetype="application/json",
+        )
+
     except ValueError as ve:
         return func.HttpResponse(
             json.dumps({"error": str(ve)}),
