@@ -1,4 +1,4 @@
-import { StockQuote, NewsArticle, StockHistoryResponse } from '@/types/stock';
+import { StockQuote, NewsArticle, StockHistoryItem, StockHistoryResponse } from '@/types/stock';
 
 /**
  * MOCK SERVICE LAYER
@@ -14,6 +14,46 @@ import { StockQuote, NewsArticle, StockHistoryResponse } from '@/types/stock';
 
 // Helper: Pauses execution for a set time (simulates network latency)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function calculateRsi(prices: number[], period: number = 14): Array<number | null> {
+  if (prices.length < period + 1) {
+    return prices.map(() => null);
+  }
+
+  const rsiValues: Array<number | null> = Array(prices.length).fill(null);
+
+  let gainsSum = 0;
+  let lossesSum = 0;
+
+  for (let i = 1; i <= period; i++) {
+    const change = prices[i] - prices[i - 1];
+    if (change > 0) {
+      gainsSum += change;
+    } else {
+      lossesSum += Math.abs(change);
+    }
+  }
+
+  let avgGain = gainsSum / period;
+  let avgLoss = lossesSum / period;
+
+  const firstRsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + (avgGain / avgLoss)));
+  rsiValues[period] = Number(firstRsi.toFixed(2));
+
+  for (let i = period + 1; i < prices.length; i++) {
+    const change = prices[i] - prices[i - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? Math.abs(change) : 0;
+
+    avgGain = ((avgGain * (period - 1)) + gain) / period;
+    avgLoss = ((avgLoss * (period - 1)) + loss) / period;
+
+    const rsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + (avgGain / avgLoss)));
+    rsiValues[i] = Number(rsi.toFixed(2));
+  }
+
+  return rsiValues;
+}
 
 export async function fetchMockQuote(symbol: string): Promise<StockQuote> {
   await delay(800); // Wait 0.8 seconds to feel "real"
@@ -47,7 +87,7 @@ export async function fetchMockQuote(symbol: string): Promise<StockQuote> {
     high: parseFloat((currentPrice + 5).toFixed(2)),
     low: parseFloat((currentPrice - 5).toFixed(2)),
     previous_close: parseFloat((openPrice - 2).toFixed(2)),
-    change_percent: parseFloat(changePercent.toFixed(2)), 
+    change_percent: parseFloat(changePercent.toFixed(2)),
     volume: Math.floor(Math.random() * 100000000) + 1000000, // Random int between 1M and 101M
   };
 }
@@ -77,24 +117,34 @@ export async function fetchMockNews(symbol: string): Promise<NewsArticle[]> {
 
 export async function fetchMockHistory(symbol: string): Promise<StockHistoryResponse> {
   await delay(800);
-  
-  const history = [];
+
+  const history: StockHistoryItem[] = [];
   const boxes = 30; // 30 days
   let price = 150;
-  
+
   for (let i = boxes; i > 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    
+
     // Random walk
     price = price + (Math.random() * 10 - 4.5);
-    
+
     history.push({
       date: date.toISOString().split('T')[0],
       close: parseFloat(price.toFixed(2)),
       sma50: price + (Math.random() * 5),
       sma200: price - (Math.random() * 20),
     });
+  }
+
+  const closes = history.map((item) => item.close);
+  const rsiValues = calculateRsi(closes, 14);
+
+  for (let i = 0; i < history.length; i++) {
+    const rsi = rsiValues[i];
+    if (rsi !== null) {
+      history[i].rsi = rsi;
+    }
   }
 
   return {
