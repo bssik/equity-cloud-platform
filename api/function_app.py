@@ -5,6 +5,10 @@ import os
 from datetime import datetime, timezone
 from services.stock_service import StockService
 from services.news_service import NewsService
+from services.watchlist_service import WatchlistService
+from services.catalysts_service import CatalystsService
+from services.auth_service import get_user_context_from_headers
+from models import WatchlistCreateRequest, WatchlistUpdateRequest
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -198,3 +202,203 @@ def get_stock_history_function(req: func.HttpRequest) -> func.HttpResponse:
              status_code=500,
              mimetype="application/json"
          )
+
+
+@app.route(route="watchlists", methods=["GET", "POST"])
+def watchlists(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        user = get_user_context_from_headers(dict(req.headers))
+        if not user:
+            return func.HttpResponse(
+                json.dumps({"error": "Authentication required"}),
+                status_code=401,
+                mimetype="application/json",
+            )
+
+        service = WatchlistService()
+
+        if req.method == "GET":
+            summaries = service.list_watchlists(user_id=user.user_id)
+            return func.HttpResponse(
+                json.dumps([s.model_dump() for s in summaries]),
+                status_code=200,
+                mimetype="application/json",
+            )
+
+        # POST
+        try:
+            body = req.get_json()
+        except ValueError:
+            body = {}
+
+        create_req = WatchlistCreateRequest.model_validate(body)
+
+        watchlist = service.create_watchlist(
+            user_id=user.user_id,
+            name=create_req.name,
+            symbols=create_req.symbols,
+        )
+
+        return func.HttpResponse(
+            watchlist.model_dump_json(),
+            status_code=201,
+            mimetype="application/json",
+        )
+
+    except ValueError as ve:
+        return func.HttpResponse(
+            json.dumps({"error": str(ve)}),
+            status_code=400,
+            mimetype="application/json",
+        )
+    except Exception as e:
+        logging.error("Watchlists error: %s", str(e))
+        return func.HttpResponse(
+            json.dumps({"error": "Internal server error"}),
+            status_code=500,
+            mimetype="application/json",
+        )
+
+
+@app.route(route="watchlists/{watchlist_id}", methods=["GET", "PUT", "DELETE"])
+def watchlist_by_id(req: func.HttpRequest) -> func.HttpResponse:
+    watchlist_id = req.route_params.get("watchlist_id")
+    if not watchlist_id:
+        return func.HttpResponse(
+            json.dumps({"error": "watchlist_id is required"}),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    try:
+        user = get_user_context_from_headers(dict(req.headers))
+        if not user:
+            return func.HttpResponse(
+                json.dumps({"error": "Authentication required"}),
+                status_code=401,
+                mimetype="application/json",
+            )
+
+        service = WatchlistService()
+
+        if req.method == "GET":
+            watchlist = service.get_watchlist(user_id=user.user_id, watchlist_id=watchlist_id)
+            if not watchlist:
+                return func.HttpResponse(
+                    json.dumps({"error": "Watchlist not found"}),
+                    status_code=404,
+                    mimetype="application/json",
+                )
+
+            return func.HttpResponse(
+                watchlist.model_dump_json(),
+                status_code=200,
+                mimetype="application/json",
+            )
+
+        if req.method == "DELETE":
+            deleted = service.delete_watchlist(user_id=user.user_id, watchlist_id=watchlist_id)
+            return func.HttpResponse(
+                json.dumps({"deleted": deleted}),
+                status_code=200,
+                mimetype="application/json",
+            )
+
+        # PUT
+        try:
+            body = req.get_json()
+        except ValueError:
+            body = {}
+
+        update_req = WatchlistUpdateRequest.model_validate(body)
+        updated = service.update_watchlist(
+            user_id=user.user_id,
+            watchlist_id=watchlist_id,
+            name=update_req.name,
+            symbols=update_req.symbols,
+        )
+
+        if not updated:
+            return func.HttpResponse(
+                json.dumps({"error": "Watchlist not found"}),
+                status_code=404,
+                mimetype="application/json",
+            )
+
+        return func.HttpResponse(
+            updated.model_dump_json(),
+            status_code=200,
+            mimetype="application/json",
+        )
+
+    except ValueError as ve:
+        return func.HttpResponse(
+            json.dumps({"error": str(ve)}),
+            status_code=400,
+            mimetype="application/json",
+        )
+    except Exception as e:
+        logging.error("Watchlist by id error: %s", str(e))
+        return func.HttpResponse(
+            json.dumps({"error": "Internal server error"}),
+            status_code=500,
+            mimetype="application/json",
+        )
+
+
+@app.route(route="catalysts", methods=["GET"])
+def catalysts(req: func.HttpRequest) -> func.HttpResponse:
+    watchlist_id = req.params.get("watchlistId")
+    from_date = req.params.get("from")
+    to_date = req.params.get("to")
+
+    if not watchlist_id:
+        return func.HttpResponse(
+            json.dumps({"error": "watchlistId query param is required"}),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    if not from_date or not to_date:
+        return func.HttpResponse(
+            json.dumps({"error": "from and to query params are required (YYYY-MM-DD)"}),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    try:
+        user = get_user_context_from_headers(dict(req.headers))
+        if not user:
+            return func.HttpResponse(
+                json.dumps({"error": "Authentication required"}),
+                status_code=401,
+                mimetype="application/json",
+            )
+
+        service = CatalystsService()
+        response_model = service.get_catalysts(
+            user_id=user.user_id,
+            watchlist_id=watchlist_id,
+            from_date=from_date,
+            to_date=to_date,
+        )
+
+        return func.HttpResponse(
+            response_model.model_dump_json(),
+            status_code=200,
+            mimetype="application/json",
+        )
+
+    except ValueError as ve:
+        return func.HttpResponse(
+            json.dumps({"error": str(ve)}),
+            status_code=404,
+            mimetype="application/json",
+        )
+    except Exception as e:
+        logging.error("Catalysts error: %s", str(e))
+        return func.HttpResponse(
+            json.dumps({"error": "Internal server error"}),
+            status_code=500,
+            mimetype="application/json",
+        )

@@ -1,3 +1,4 @@
 azure-functions
 requests
 pydantic>=2.0.0
+azure-data-tables>=12.5.0

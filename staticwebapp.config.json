@@ -13,6 +13,14 @@
       }
     },
     {
+      "route": "/api/watchlists*",
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/api/catalysts*",
+      "allowedRoles": ["authenticated"]
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["anonymous"]
     },

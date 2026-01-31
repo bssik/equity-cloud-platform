@@ -1,0 +1,47 @@
+[
+  {
+    "utc_time": "2026-02-05T13:30:00Z",
+    "title": "US CPI (YoY)",
+    "country": "US",
+    "impact": "high",
+    "sectors": ["Macro"],
+    "source": "Curated",
+    "url": "https://www.bls.gov/cpi/"
+  },
+  {
+    "utc_time": "2026-02-06T13:30:00Z",
+    "title": "US Nonfarm Payrolls",
+    "country": "US",
+    "impact": "high",
+    "sectors": ["Macro"],
+    "source": "Curated",
+    "url": "https://www.bls.gov/ces/"
+  },
+  {
+    "utc_time": "2026-02-12T15:00:00Z",
+    "title": "US Retail Sales",
+    "country": "US",
+    "impact": "medium",
+    "sectors": ["Macro"],
+    "source": "Curated",
+    "url": "https://www.census.gov/retail/index.html"
+  },
+  {
+    "utc_time": "2026-02-20T15:00:00Z",
+    "title": "US Existing Home Sales",
+    "country": "US",
+    "impact": "medium",
+    "sectors": ["Real Estate"],
+    "source": "Curated",
+    "url": "https://www.nar.realtor/research-and-statistics/housing-statistics/existing-home-sales"
+  },
+  {
+    "utc_time": "2026-02-26T15:00:00Z",
+    "title": "US GDP (Preliminary)",
+    "country": "US",
+    "impact": "high",
+    "sectors": ["Macro"],
+    "source": "Curated",
+    "url": "https://www.bea.gov/data/gdp/gross-domestic-product"
+  }
+]
