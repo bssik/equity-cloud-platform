@@ -58,7 +58,9 @@ def _collect_watchlist_axes(watchlist: Watchlist) -> Tuple[List[str], List[str]]
 
 class CatalystsService:
     def __init__(self) -> None:
-        self._watchlists = WatchlistService()
+        # Lazy init: watchlists storage may not be configured (especially in early dev).
+        # Only build the watchlist service when a user requests watchlist-scoped catalysts.
+        self._watchlists: Optional[WatchlistService] = None
         self._finnhub = FinnhubService()
         self._macro = MacroCalendarService()
 
@@ -68,6 +70,9 @@ class CatalystsService:
 
         # If user context is provided, fetch watchlist to filter/enrich
         if user_id and watchlist_id:
+            if self._watchlists is None:
+                self._watchlists = WatchlistService()
+
             watchlist = self._watchlists.get_watchlist(user_id=user_id, watchlist_id=watchlist_id)
             if watchlist:
                 countries, sectors = _collect_watchlist_axes(watchlist)
