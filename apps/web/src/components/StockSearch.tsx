@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { StockQuote, NewsArticle, StockHistoryItem } from '@/types/stock';
-// For now, we use the Mock Service to guarantee Atomic Loading and beautiful data.
-// Later, we will swap this import to '@/lib/stockApi'
-import { fetchMockQuote, fetchMockNews, fetchMockHistory } from '@/lib/mockService';
+import { marketFetchHistory, marketFetchNews, marketFetchQuote } from '@/lib/marketDataClient';
 import StockCard from './StockCard';
 import PriceChart from './PriceChart';
 import NewsList from './NewsList';
@@ -34,9 +32,9 @@ export default function StockSearch() {
       // THE ATOMIC LOAD (Waterfall Killer)
       // We wait for ALL promises to resolve before showing anything.
       const [quoteData, newsData, historyData] = await Promise.all([
-        fetchMockQuote(symbol),
-        fetchMockNews(symbol),
-        fetchMockHistory(symbol)
+        marketFetchQuote(symbol),
+        marketFetchNews(symbol),
+        marketFetchHistory(symbol)
       ]);
 
       // Batch Updates (React 18 handles this automatically, but good to know)
