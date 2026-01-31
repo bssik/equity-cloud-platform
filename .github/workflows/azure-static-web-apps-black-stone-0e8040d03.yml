@@ -56,7 +56,7 @@ jobs:
           action: "upload"
           app_location: "apps/web"
           api_location: "api"
-          output_location: ""
+          output_location: "out"
           skip_api_build: false
           deployment_environment: "dev"
 
@@ -79,7 +79,7 @@ jobs:
           action: "upload"
           app_location: "apps/web"
           api_location: "api"
-          output_location: ""
+          output_location: "out"
           skip_api_build: false
 
   close_pull_request_job:
@@ -95,4 +95,4 @@ jobs:
           action: "close"
           app_location: "apps/web"
           api_location: "api"
-          output_location: ""
+          output_location: "out"
