@@ -7,21 +7,21 @@ interface NewsListProps {
   loading?: boolean;
 }
 
+const formatTimeAgo = (timestamp: number) => {
+  // Timestamps from APIs are often in milliseconds, but logic assumed seconds earlier.
+  // Let's ensure we handle both. If it's huge (13 digits), it's ms.
+  const ts = timestamp > 10000000000 ? timestamp / 1000 : timestamp;
+  const now = Date.now() / 1000;
+  const seconds = Math.floor(now - ts);
+
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(timestamp).toLocaleDateString();
+};
+
 export default function NewsList({ news, loading = false }: NewsListProps) {
-
-  const formatTimeAgo = (timestamp: number) => {
-    // Timestamps from APIs are often in milliseconds, but logic assumed seconds earlier.
-    // Let's ensure we handle both. If it's huge (13 digits), it's ms.
-    const ts = timestamp > 10000000000 ? timestamp / 1000 : timestamp;
-    const now = Date.now() / 1000;
-    const seconds = Math.floor(now - ts);
-
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    return new Date(timestamp).toLocaleDateString();
-  };
 
   if (loading) {
     return (

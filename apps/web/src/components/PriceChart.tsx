@@ -11,7 +11,9 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  ScriptableContext,
+  ChartData
 } from 'chart.js';
 import { StockHistoryItem } from '@/types/stock';
 
@@ -42,12 +44,12 @@ export default function PriceChart({ history, loading = false }: PriceChartProps
     const sma50 = history.map(item => item.sma50 ?? null);
     const sma200 = history.map(item => item.sma200 ?? null);
 
-    const datasets: any[] = [
+    const datasets: ChartData<'line'>['datasets'] = [
       {
         label: 'Close Price',
         data: prices,
         fill: true,
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<'line'>) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 400);
           gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
