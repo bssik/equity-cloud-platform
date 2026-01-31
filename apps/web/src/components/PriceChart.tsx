@@ -97,7 +97,7 @@ export default function PriceChart({ history, loading = false }: PriceChartProps
   // SKELETON STATE
   if (loading) {
     return (
-      <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-6 h-[400px] flex flex-col">
+      <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6 h-[340px] sm:h-[400px] flex flex-col">
         <div className="h-6 w-32 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mb-6" />
         <div className="flex-1 w-full bg-gray-50 dark:bg-gray-800/50 rounded-lg animate-pulse" />
       </div>
@@ -129,11 +129,11 @@ export default function PriceChart({ history, loading = false }: PriceChartProps
   return (
     <div className="mt-8 space-y-4">
       {/* Main Price Chart */}
-      <div className="bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+      <div className="bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
           Price History
         </h3>
-        <div className="h-[350px] w-full">
+        <div className="h-[260px] sm:h-[350px] w-full">
           <Line
             data={chartData}
             options={{
@@ -188,11 +188,11 @@ export default function PriceChart({ history, loading = false }: PriceChartProps
 
       {/* RSI Chart */}
       {rsiChartData && (
-        <div className="bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+        <div className="bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
             RSI (Relative Strength Index)
           </h3>
-          <div className="h-[180px] w-full">
+          <div className="h-[160px] sm:h-[180px] w-full">
             <Line
               data={rsiChartData}
               options={{

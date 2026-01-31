@@ -25,8 +25,8 @@ export default function NewsList({ news, loading = false }: NewsListProps) {
 
   if (loading) {
     return (
-      <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-6">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+      <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
           Recent News
         </h3>
         <div className="space-y-4">
@@ -50,8 +50,8 @@ export default function NewsList({ news, loading = false }: NewsListProps) {
   }
 
   return (
-    <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
-      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+    <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
         Recent News
       </h3>
       <div className="space-y-3">
@@ -61,18 +61,18 @@ export default function NewsList({ news, loading = false }: NewsListProps) {
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block p-4 bg-gray-50 dark:bg-[#151515] rounded-lg border border-transparent dark:border-gray-800
+            className="block p-3 sm:p-4 bg-gray-50 dark:bg-[#151515] rounded-lg border border-transparent dark:border-gray-800
                        hover:border-blue-500 hover:bg-white dark:hover:bg-[#1a1a1a]
                        transition-all duration-200 group"
           >
             <h4 className="font-medium text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400">
               {article.headline}
             </h4>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
+            <div className="flex justify-between items-center gap-3 text-sm">
+              <span className="text-blue-600 dark:text-blue-400 font-medium truncate">
                 {article.source}
               </span>
-              <span className="text-gray-500 dark:text-gray-400 font-mono text-xs">
+              <span className="text-gray-500 dark:text-gray-400 font-mono text-[10px] sm:text-xs whitespace-nowrap">
                 {formatTimeAgo(article.datetime)}
               </span>
             </div>

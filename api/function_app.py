@@ -1,10 +1,50 @@
 import azure.functions as func
 import logging
 import json
+import os
+from datetime import datetime, timezone
 from services.stock_service import StockService
 from services.news_service import NewsService
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
+
+@app.route(route="health")
+def health_check(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Health/readiness endpoint.
+
+    Security rule: never return secret values. Only return boolean flags
+    indicating whether required settings are present.
+    """
+    alpha_vantage_configured = bool(os.environ.get("ALPHA_VANTAGE_API_KEY"))
+    finnhub_configured = bool(os.environ.get("FINNHUB_API_KEY"))
+
+    # Readiness is per-capability, plus an overall signal.
+    readiness = {
+        "quote": alpha_vantage_configured,
+        "history": alpha_vantage_configured,
+        "sma": alpha_vantage_configured,
+        "news": finnhub_configured,
+    }
+
+    overall_ready = all(readiness.values())
+
+    payload = {
+        "status": "ok" if overall_ready else "degraded",
+        "utc_time": datetime.now(timezone.utc).isoformat(),
+        "configured": {
+            "alpha_vantage": alpha_vantage_configured,
+            "finnhub": finnhub_configured,
+        },
+        "ready": readiness,
+    }
+
+    return func.HttpResponse(
+        json.dumps(payload),
+        status_code=200 if overall_ready else 503,
+        mimetype="application/json",
+    )
 
 @app.route(route="quote/{symbol}")
 def get_stock_data_function(req: func.HttpRequest) -> func.HttpResponse:

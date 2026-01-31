@@ -56,13 +56,13 @@ export default function StockSearch() {
   return (
     <div className="space-y-6 w-full">
       {/* Search Input */}
-      <form onSubmit={handleSearch} className="flex gap-3">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={symbol}
           onChange={(e) => setSymbol(e.target.value)}
           placeholder="Enter symbol (e.g., AAPL)..."
-          className="flex-1 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800
+          className="w-full flex-1 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800
                      bg-white dark:bg-[#111] text-gray-900 dark:text-white
                      focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none
                      placeholder-gray-400 dark:placeholder-gray-500 font-mono transition-all"
@@ -70,7 +70,7 @@ export default function StockSearch() {
         <button
           type="submit"
           disabled={loading}
-          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
+          className="w-full sm:w-auto justify-center px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
                      text-white font-semibold rounded-lg transition-colors
                      flex items-center gap-2"
         >

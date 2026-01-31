@@ -1,14 +1,20 @@
 import StockSearch from '@/components/StockSearch';
+import DataSourceBadge from '@/components/DataSourceBadge';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 font-sans">
-      <main className="w-full max-w-[1600px] mx-auto px-8 sm:px-12 lg:px-16 py-12">
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-16 py-8 sm:py-12">
         <div className="mb-12 border-b border-gray-200 dark:border-gray-800 pb-6">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight mb-3">
-            EquityCloud
-            <span className="text-blue-600 dark:text-blue-500">.</span>
-          </h1>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6 mb-3">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight">
+              EquityCloud
+              <span className="text-blue-600 dark:text-blue-500">.</span>
+            </h1>
+            <div className="self-start">
+              <DataSourceBadge />
+            </div>
+          </div>
 
           <div className="max-w-3xl space-y-4">
             <h2 className="text-xl font-medium text-gray-700 dark:text-gray-200">

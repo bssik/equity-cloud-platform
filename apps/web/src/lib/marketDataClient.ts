@@ -4,7 +4,7 @@ import { NewsArticle, StockHistoryResponse, StockQuote } from '@/types/stock';
 
 export type MarketDataSource = 'mock' | 'api';
 
-function getMarketDataSource(): MarketDataSource {
+export function getMarketDataSource(): MarketDataSource {
   const raw = process.env.NEXT_PUBLIC_MARKET_DATA_SOURCE;
 
   if (!raw) return 'mock';
