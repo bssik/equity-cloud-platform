@@ -23,6 +23,7 @@ export interface StockHistoryItem {
   close: number;
   sma50?: number;
   sma200?: number;
+  rsi?: number;
 }
 
 export interface StockHistoryResponse {

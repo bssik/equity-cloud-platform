@@ -98,6 +98,61 @@ class StockService:
 
         return sma_data
 
+    def calculate_rsi(self, prices: list, period: int = 14) -> list:
+        """
+        Calculate RSI (Relative Strength Index) from a list of closing prices.
+        RSI = 100 - (100 / (1 + RS))
+        where RS = Average Gain / Average Loss over the period.
+
+        Returns a list of RSI values (None for insufficient data points).
+        """
+        if len(prices) < period + 1:
+            return [None] * len(prices)
+
+        rsi_values = [None] * period  # First 'period' values are None
+
+        # Calculate initial average gain and loss
+        gains = []
+        losses = []
+
+        for i in range(1, period + 1):
+            change = prices[i] - prices[i-1]
+            if change > 0:
+                gains.append(change)
+                losses.append(0)
+            else:
+                gains.append(0)
+                losses.append(abs(change))
+
+        avg_gain = sum(gains) / period
+        avg_loss = sum(losses) / period
+
+        # Calculate RSI for the first valid point
+        if avg_loss == 0:
+            rsi_values.append(100.0)
+        else:
+            rs = avg_gain / avg_loss
+            rsi_values.append(100 - (100 / (1 + rs)))
+
+        # Calculate smoothed RSI for remaining points
+        for i in range(period + 1, len(prices)):
+            change = prices[i] - prices[i-1]
+
+            if change > 0:
+                avg_gain = ((avg_gain * (period - 1)) + change) / period
+                avg_loss = (avg_loss * (period - 1)) / period
+            else:
+                avg_gain = (avg_gain * (period - 1)) / period
+                avg_loss = ((avg_loss * (period - 1)) + abs(change)) / period
+
+            if avg_loss == 0:
+                rsi_values.append(100.0)
+            else:
+                rs = avg_gain / avg_loss
+                rsi_values.append(100 - (100 / (1 + rs)))
+
+        return rsi_values
+
     def get_daily_prices(self, symbol: str) -> dict:
         """Fetch daily historical price data for a symbol (last 100 data points)"""
         if not self.api_key:
@@ -144,7 +199,7 @@ class StockService:
 
     def get_full_chart_data(self, symbol: str) -> dict:
         """
-        Aggregates daily prices and technical indicators (SMA) into a single dataset.
+        Aggregates daily prices and technical indicators (SMA, RSI) into a single dataset.
         This provides a 'pre-joined' view for the frontend, reducing client-side logic.
         """
         # Fetch both in parallel would be nice, but for now we'll do it sequentially
@@ -154,13 +209,21 @@ class StockService:
 
         history = prices_data.get("history", [])
 
-        # Join SMA values into the history list where dates match
-        for item in history:
+        # Calculate RSI from closing prices
+        closing_prices = [item["close"] for item in history]
+        rsi_values = self.calculate_rsi(closing_prices, period=14)
+
+        # Join SMA and RSI values into the history list where dates match
+        for i, item in enumerate(history):
             date = item["date"]
             if "sma50_values" in sma_data and date in sma_data["sma50_values"]:
                 item["sma50"] = float(sma_data["sma50_values"][date])
             if "sma200_values" in sma_data and date in sma_data["sma200_values"]:
                 item["sma200"] = float(sma_data["sma200_values"][date])
+
+            # Add RSI value
+            if i < len(rsi_values) and rsi_values[i] is not None:
+                item["rsi"] = round(rsi_values[i], 2)
 
         return {
             "symbol": symbol.upper(),
