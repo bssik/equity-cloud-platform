@@ -149,6 +149,3 @@ export async function fetchCatalysts(params: {
 
   return response.json();
 }
-
-  return response.json();
-}
