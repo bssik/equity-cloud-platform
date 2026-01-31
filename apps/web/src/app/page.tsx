@@ -1,5 +1,7 @@
 import StockSearch from '@/components/StockSearch';
 import DataSourceBadge from '@/components/DataSourceBadge';
+import ApiHealthPill from '@/components/ApiHealthPill';
+import CatalystsPanel from '@/components/CatalystsPanel';
 
 export default function Home() {
   return (
@@ -12,7 +14,10 @@ export default function Home() {
               <span className="text-blue-600 dark:text-blue-500">.</span>
             </h1>
             <div className="self-start">
-              <DataSourceBadge />
+              <div className="flex flex-wrap items-center gap-2">
+                <DataSourceBadge />
+                <ApiHealthPill />
+              </div>
             </div>
           </div>
 
@@ -52,6 +57,8 @@ export default function Home() {
         <div className="w-full">
           <StockSearch />
         </div>
+
+        <CatalystsPanel />
 
         <div className="mt-16 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>Built with Next.js, Azure Functions, and Alpha Vantage API</p>
