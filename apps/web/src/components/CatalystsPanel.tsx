@@ -97,18 +97,25 @@ export default function CatalystsPanel() {
   }, []);
 
   useEffect(() => {
-    if (!selectedId) return;
-
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError('');
       try {
-        const [wl, cats] = await Promise.all([
-          fetchWatchlist(selectedId),
-          fetchCatalysts({ watchlistId: selectedId, from: fromDate, to: toDate }),
-        ]);
+        let wl: Watchlist | null = null;
+        let cats: CatalystsResponse;
+
+        if (selectedId) {
+            [wl, cats] = await Promise.all([
+              fetchWatchlist(selectedId),
+              fetchCatalysts({ watchlistId: selectedId, from: fromDate, to: toDate }),
+            ]);
+        } else {
+            // General Market Mode (Macro only)
+            cats = await fetchCatalysts({ from: fromDate, to: toDate });
+            wl = null;
+        }
 
         if (cancelled) return;
         setActiveWatchlist(wl);

@@ -73,7 +73,7 @@ class CatalystEvent(BaseModel):
 
 
 class CatalystsResponse(BaseModel):
-    watchlist_id: str
+    watchlist_id: Optional[str] = None
     from_date: str
     to_date: str
     countries: List[str] = Field(default_factory=list)

@@ -352,12 +352,8 @@ def catalysts(req: func.HttpRequest) -> func.HttpResponse:
     from_date = req.params.get("from")
     to_date = req.params.get("to")
 
-    if not watchlist_id:
-        return func.HttpResponse(
-            json.dumps({"error": "watchlistId query param is required"}),
-            status_code=400,
-            mimetype="application/json",
-        )
+    # watchlistId is now optional for "general market" view
+    # if not watchlist_id: ...
 
     if not from_date or not to_date:
         return func.HttpResponse(
@@ -367,17 +363,23 @@ def catalysts(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     try:
+        # Check for user context, but do not enforce it strict blocking if not present
+        # However, if watchlist_id IS provided, we probably need a user to fetch it (unless we support public watchlists later)
         user = get_user_context_from_headers(dict(req.headers))
-        if not user:
-            return func.HttpResponse(
-                json.dumps({"error": "Authentication required"}),
+
+        # If user requests a specific watchlist, they MUST be logged in.
+        if watchlist_id and not user:
+             return func.HttpResponse(
+                json.dumps({"error": "Authentication required to view specific watchlist events"}),
                 status_code=401,
                 mimetype="application/json",
             )
 
+        user_id = user.user_id if user else None
+
         service = CatalystsService()
         response_model = service.get_catalysts(
-            user_id=user.user_id,
+            user_id=user_id,
             watchlist_id=watchlist_id,
             from_date=from_date,
             to_date=to_date,

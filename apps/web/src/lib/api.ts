@@ -58,6 +58,9 @@ export async function fetchWatchlists(): Promise<WatchlistSummary[]> {
   const response = await fetch(`${API_BASE_URL}/watchlists`);
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      return [];
+    }
     throw new Error('Failed to fetch watchlists');
   }
 
@@ -124,15 +127,18 @@ export async function deleteWatchlist(watchlistId: string): Promise<{ deleted: b
 }
 
 export async function fetchCatalysts(params: {
-  watchlistId: string;
+  watchlistId?: string;
   from: string;
   to: string;
 }): Promise<CatalystsResponse> {
   const query = new URLSearchParams({
-    watchlistId: params.watchlistId,
     from: params.from,
     to: params.to,
   });
+
+  if (params.watchlistId) {
+    query.append('watchlistId', params.watchlistId);
+  }
 
   const response = await fetch(`${API_BASE_URL}/catalysts?${query.toString()}`);
 
@@ -140,6 +146,9 @@ export async function fetchCatalysts(params: {
     const data = await response.json().catch(() => null);
     throw new Error(data?.error || 'Failed to fetch catalysts');
   }
+
+  return response.json();
+}
 
   return response.json();
 }

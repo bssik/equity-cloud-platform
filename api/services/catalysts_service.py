@@ -62,12 +62,21 @@ class CatalystsService:
         self._finnhub = FinnhubService()
         self._macro = MacroCalendarService()
 
-    def get_catalysts(self, user_id: str, watchlist_id: str, from_date: str, to_date: str) -> CatalystsResponse:
-        watchlist = self._watchlists.get_watchlist(user_id=user_id, watchlist_id=watchlist_id)
-        if not watchlist:
-            raise ValueError("Watchlist not found")
+    def get_catalysts(self, from_date: str, to_date: str, user_id: Optional[str] = None, watchlist_id: Optional[str] = None) -> CatalystsResponse:
+        countries: List[str] = []
+        sectors: List[str] = []
 
-        countries, sectors = _collect_watchlist_axes(watchlist)
+        # If user context is provided, fetch watchlist to filter/enrich
+        if user_id and watchlist_id:
+            watchlist = self._watchlists.get_watchlist(user_id=user_id, watchlist_id=watchlist_id)
+            if watchlist:
+                countries, sectors = _collect_watchlist_axes(watchlist)
+            else:
+                # If ID provided but not found, maybe raise error?
+                # Or just fall back to global. Let's raise error for explicit ID.
+                raise ValueError("Watchlist not found")
+        else:
+            watchlist = None
 
         events: List[CatalystEvent] = []
         providers = {
@@ -76,54 +85,59 @@ class CatalystsService:
         }
 
         # Earnings (per-symbol to keep results tight).
-        for item in watchlist.items:
-            try:
-                earnings = self._finnhub.get_earnings_calendar(
-                    from_date=from_date,
-                    to_date=to_date,
-                    symbol=item.symbol,
-                    international=True,
-                )
-
-                for e in earnings:
-                    date_str = e.get("date")
-                    if not date_str:
-                        continue
-
-                    # We only have a date + "hour" bucket, so we keep it date-only.
-                    utc_time = f"{date_str}T00:00:00Z"
-
-                    title = f"{item.symbol} earnings"
-                    hour = e.get("hour")
-                    if hour:
-                        title = f"{title} ({hour})"
-
-                    events.append(
-                        CatalystEvent(
-                            id=str(uuid.uuid4()),
-                            type="earnings",
-                            title=title,
-                            utc_time=utc_time,
-                            date=date_str,
-                            symbol=item.symbol,
-                            country=item.country,
-                            sectors=[s for s in [item.sector] if s],
-                            source="Finnhub",
-                            meta={
-                                "epsEstimate": e.get("epsEstimate"),
-                                "epsActual": e.get("epsActual"),
-                                "revenueEstimate": e.get("revenueEstimate"),
-                                "revenueActual": e.get("revenueActual"),
-                                "quarter": e.get("quarter"),
-                                "year": e.get("year"),
-                                "hour": hour,
-                            },
-                        )
+        if watchlist:
+            for item in watchlist.items:
+                try:
+                    earnings = self._finnhub.get_earnings_calendar(
+                        from_date=from_date,
+                        to_date=to_date,
+                        symbol=item.symbol,
+                        international=True,
                     )
 
-            except Exception as ex:
-                logging.warning("Earnings calendar failed for %s: %s", item.symbol, str(ex))
-                providers["earnings"] = "degraded"
+                    for e in earnings:
+                        date_str = e.get("date")
+                        if not date_str:
+                            continue
+
+                        # We only have a date + "hour" bucket, so we keep it date-only.
+                        utc_time = f"{date_str}T00:00:00Z"
+
+                        title = f"{item.symbol} earnings"
+                        hour = e.get("hour")
+                        if hour:
+                            title = f"{title} ({hour})"
+
+                        events.append(
+                            CatalystEvent(
+                                id=str(uuid.uuid4()),
+                                type="earnings",
+                                title=title,
+                                utc_time=utc_time,
+                                date=date_str,
+                                symbol=item.symbol,
+                                country=item.country,
+                                sectors=[s for s in [item.sector] if s],
+                                source="Finnhub",
+                                meta={
+                                    "epsEstimate": e.get("epsEstimate"),
+                                    "epsActual": e.get("epsActual"),
+                                    "revenueEstimate": e.get("revenueEstimate"),
+                                    "revenueActual": e.get("revenueActual"),
+                                    "quarter": e.get("quarter"),
+                                    "year": e.get("year"),
+                                    "hour": hour,
+                                },
+                            )
+                        )
+
+                except Exception as ex:
+                    logging.warning("Earnings calendar failed for %s: %s", item.symbol, str(ex))
+                    providers["earnings"] = "degraded"
+        else:
+            # No watchlist -> No strict earnings filtering.
+            # We could return "top earnings" here if we wanted, but for now just skip.
+            providers["earnings"] = "skipped_no_watchlist"
 
         # Macro events (curated, free)
         curated_macro = self._macro.get_events(from_date=from_date, to_date=to_date)
@@ -132,11 +146,11 @@ class CatalystsService:
 
         for e in curated_macro:
             # Filter by watchlist countries when possible.
-            if countries and e.country and len(e.country) == 2 and e.country not in countries:
+            if watchlist and countries and e.country and len(e.country) == 2 and e.country not in countries:
                 continue
 
             # Filter by sectors if we have both sides.
-            if sectors and e.sectors:
+            if watchlist and sectors and e.sectors:
                 if not any(s in sectors for s in e.sectors):
                     continue
 
@@ -146,7 +160,7 @@ class CatalystsService:
         events.sort(key=lambda e: (e.utc_time, e.title))
 
         return CatalystsResponse(
-            watchlist_id=watchlist.id,
+            watchlist_id=watchlist.id if watchlist else None,
             from_date=from_date,
             to_date=to_date,
             countries=countries,
