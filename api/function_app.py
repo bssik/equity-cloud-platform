@@ -24,12 +24,18 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     alpha_vantage_configured = bool(os.environ.get("ALPHA_VANTAGE_API_KEY"))
     finnhub_configured = bool(os.environ.get("FINNHUB_API_KEY"))
 
+    # Watchlists storage: Azure Tables requires a storage connection string.
+    watchlists_storage_configured = bool(
+        os.environ.get("AzureWebJobsStorage") or os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+    )
+
     # Readiness is per-capability, plus an overall signal.
     readiness = {
         "quote": alpha_vantage_configured,
         "history": alpha_vantage_configured,
         "sma": alpha_vantage_configured,
         "news": finnhub_configured,
+        "watchlists": watchlists_storage_configured,
     }
 
     overall_ready = all(readiness.values())
@@ -40,6 +46,7 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
         "configured": {
             "alpha_vantage": alpha_vantage_configured,
             "finnhub": finnhub_configured,
+            "watchlists_storage": watchlists_storage_configured,
         },
         "ready": readiness,
     }
@@ -245,6 +252,14 @@ def watchlists(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json",
         )
 
+    except RuntimeError as re:
+        # Typically raised for missing/unavailable storage configuration.
+        logging.error("Watchlists runtime error: %s", str(re))
+        return func.HttpResponse(
+            json.dumps({"error": str(re)}),
+            status_code=503,
+            mimetype="application/json",
+        )
     except ValueError as ve:
         return func.HttpResponse(
             json.dumps({"error": str(ve)}),

@@ -289,6 +289,23 @@ class AzureTableWatchlistRepository(WatchlistRepository):
 
 
 def build_watchlist_repository() -> WatchlistRepository:
+    def _is_local_dev() -> bool:
+        env = (
+            os.environ.get("AZURE_FUNCTIONS_ENVIRONMENT")
+            or os.environ.get("FUNCTIONS_ENVIRONMENT")
+            or os.environ.get("ENVIRONMENT")
+            or ""
+        ).strip().lower()
+        return env in ("development", "dev", "local")
+
+    def _is_running_in_azure() -> bool:
+        # Common Azure App Service / Functions markers.
+        return bool(
+            os.environ.get("WEBSITE_INSTANCE_ID")
+            or os.environ.get("WEBSITE_SITE_NAME")
+            or os.environ.get("FUNCTIONS_WORKER_RUNTIME")
+        ) and not _is_local_dev()
+
     connection_string = (
         os.environ.get("AzureWebJobsStorage")
         or os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
@@ -299,7 +316,17 @@ def build_watchlist_repository() -> WatchlistRepository:
         try:
             return AzureTableWatchlistRepository(connection_string=connection_string)
         except Exception as e:
-            logging.warning("Falling back to local watchlist repo: %s", str(e))
+            if _is_local_dev():
+                logging.warning("Falling back to local watchlist repo: %s", str(e))
+            else:
+                logging.error("Watchlist storage unavailable: %s", str(e))
+                raise RuntimeError("Watchlist storage unavailable")
+
+    if _is_running_in_azure():
+        # In Azure, the filesystem may be read-only / ephemeral; do not silently fall back.
+        raise RuntimeError(
+            "Watchlist storage not configured. Set AzureWebJobsStorage or AZURE_STORAGE_CONNECTION_STRING."
+        )
 
     # Local fallback (dev)
     root = os.path.dirname(os.path.dirname(__file__))
