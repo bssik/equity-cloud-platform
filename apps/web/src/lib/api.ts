@@ -4,6 +4,96 @@ import type { CatalystsResponse } from '@/types/catalyst';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+export type AuthMeResult = {
+  available: boolean;
+  authenticated: boolean;
+  userDetails?: string;
+};
+
+type AuthMeClientPrincipal = {
+  userDetails?: string;
+  user_details?: string;
+};
+
+type AuthMeArrayItem = {
+  userDetails?: string;
+  user_details?: string;
+  clientPrincipal?: AuthMeClientPrincipal;
+};
+
+type AuthMeObject = {
+  clientPrincipal?: AuthMeClientPrincipal;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function asAuthMeArrayItem(value: unknown): AuthMeArrayItem | null {
+  if (!isRecord(value)) return null;
+  return value as AuthMeArrayItem;
+}
+
+function asAuthMeObject(value: unknown): AuthMeObject | null {
+  if (!isRecord(value)) return null;
+  return value as AuthMeObject;
+}
+
+function extractUserDetails(payload: unknown): string | undefined {
+  // Azure Static Web Apps /.auth/me usually returns an array.
+  // Be tolerant: we support several shapes to avoid hard-coding.
+  try {
+    if (Array.isArray(payload)) {
+      const first = asAuthMeArrayItem(payload[0]);
+      if (!first) return undefined;
+      return (
+        first.userDetails ??
+        first.user_details ??
+        first.clientPrincipal?.userDetails ??
+        first.clientPrincipal?.user_details
+      );
+    }
+
+    const obj = asAuthMeObject(payload);
+    return obj?.clientPrincipal?.userDetails ?? obj?.clientPrincipal?.user_details;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function fetchAuthMe(): Promise<AuthMeResult> {
+  try {
+    const response = await fetch('/.auth/me', { method: 'GET', cache: 'no-store' });
+
+    if (response.status === 404) {
+      // Most likely running without SWA (e.g. Next dev server).
+      return { available: false, authenticated: false };
+    }
+
+    let payload: unknown = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      return { available: true, authenticated: false };
+    }
+
+    const authenticated =
+      Array.isArray(payload) ? payload.length > 0 : Boolean(asAuthMeObject(payload)?.clientPrincipal);
+    return {
+      available: true,
+      authenticated,
+      userDetails: extractUserDetails(payload),
+    };
+  } catch {
+    // Network error or blocked endpoint.
+    return { available: false, authenticated: false };
+  }
+}
+
 export async function fetchQuote(symbol: string): Promise<StockQuote> {
   const response = await fetch(`${API_BASE_URL}/quote/${symbol}`);
 

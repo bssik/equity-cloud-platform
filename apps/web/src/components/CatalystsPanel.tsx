@@ -5,6 +5,7 @@ import type { CatalystEvent, CatalystsResponse } from '@/types/catalyst';
 import type { Watchlist, WatchlistSummary } from '@/types/watchlist';
 import {
   createWatchlist,
+  fetchAuthMe,
   fetchCatalysts,
   fetchWatchlist,
   fetchWatchlists,
@@ -44,6 +45,9 @@ function groupByDate(events: CatalystEvent[]): Array<{ date: string; events: Cat
 }
 
 export default function CatalystsPanel() {
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
 
@@ -75,9 +79,34 @@ export default function CatalystsPanel() {
   useEffect(() => {
     let cancelled = false;
 
+    async function loadAuth() {
+      const auth = await fetchAuthMe();
+      if (cancelled) return;
+      setAuthChecked(true);
+      setIsAuthenticated(auth.available && auth.authenticated);
+    }
+
+    void loadAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authChecked) return;
+
+    let cancelled = false;
+
     async function loadWatchlists() {
       setError('');
       try {
+        if (!isAuthenticated) {
+          setWatchlists([]);
+          setSelectedId('');
+          return;
+        }
+
         const list = await fetchWatchlists();
         if (cancelled) return;
         setWatchlists(list);
@@ -94,7 +123,7 @@ export default function CatalystsPanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authChecked, isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -232,6 +261,18 @@ export default function CatalystsPanel() {
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Watchlists</p>
               </div>
 
+              {!isAuthenticated && (
+                <div className="text-xs font-mono text-gray-500 dark:text-gray-500">
+                  Sign in to create and manage watchlists.{' '}
+                  <a
+                    href="/.auth/login/aad?post_login_redirect_uri=/"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Sign in
+                  </a>
+                </div>
+              )}
+
               <select
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
@@ -273,7 +314,7 @@ export default function CatalystsPanel() {
                 />
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isAuthenticated}
                   className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm"
                 >
                   Create watchlist

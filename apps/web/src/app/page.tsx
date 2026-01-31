@@ -2,6 +2,7 @@ import StockSearch from '@/components/StockSearch';
 import DataSourceBadge from '@/components/DataSourceBadge';
 import ApiHealthPill from '@/components/ApiHealthPill';
 import CatalystsPanel from '@/components/CatalystsPanel';
+import AuthPill from '@/components/AuthPill';
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-2">
                 <DataSourceBadge />
                 <ApiHealthPill />
+                <AuthPill />
               </div>
             </div>
           </div>
@@ -43,7 +45,7 @@ export default function Home() {
 
               <div className="flex items-center gap-2 text-gray-400 dark:text-gray-600 px-3 py-1 border border-dashed border-gray-300 dark:border-gray-700 rounded-full">
                 <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                <span className="font-mono text-xs">GPT-4 Integration (Dev)</span>
+                <span className="font-mono text-xs">GPT Integration (Dev)</span>
               </div>
             </div>
 
