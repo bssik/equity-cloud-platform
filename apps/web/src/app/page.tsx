@@ -43,11 +43,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Educational Demo Section */}
-        <div className="hidden">
-           <ConceptDemo />
-        </div>
-
         <div className="w-full">
           <StockSearch />
         </div>
