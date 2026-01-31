@@ -307,7 +307,8 @@ def build_watchlist_repository() -> WatchlistRepository:
         ) and not _is_local_dev()
 
     connection_string = (
-        os.environ.get("AzureWebJobsStorage")
+        os.environ.get("EQUITY_STORAGE_CONNECTION")
+        or os.environ.get("AzureWebJobsStorage")
         or os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
         or ""
     )
@@ -325,7 +326,7 @@ def build_watchlist_repository() -> WatchlistRepository:
     if _is_running_in_azure():
         # In Azure, the filesystem may be read-only / ephemeral; do not silently fall back.
         raise RuntimeError(
-            "Watchlist storage not configured. Set AzureWebJobsStorage or AZURE_STORAGE_CONNECTION_STRING."
+            "Watchlist storage not configured. Set EQUITY_STORAGE_CONNECTION or AzureWebJobsStorage."
         )
 
     # Local fallback (dev)

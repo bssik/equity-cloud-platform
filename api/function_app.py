@@ -26,7 +26,9 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
 
     # Watchlists storage: Azure Tables requires a storage connection string.
     watchlists_storage_configured = bool(
-        os.environ.get("AzureWebJobsStorage") or os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+        os.environ.get("EQUITY_STORAGE_CONNECTION")
+        or os.environ.get("AzureWebJobsStorage")
+        or os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
     )
 
     # Readiness is per-capability, plus an overall signal.

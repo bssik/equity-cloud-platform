@@ -98,6 +98,37 @@ We upgraded `FinnhubService` to handle the real world, where APIs fail and quota
 
 ---
 
+## 5. Security & Availability: Handling Dependencies
+
+We encountered an issue where the app threw a generic `500 Internal Server Error` when Watchlist storage wasn't configured.
+
+### The "Fail Gracefully" Pattern
+**The Fix:** We changed the `500` to a `503 Service Unavailable`.
+**Why?**
+- **500** means "We wrote bad code that crashed."
+- **503** means "The code is fine, but a dependency (Database/API) is missing or down."
+- This distinction helps SREs (Site Reliability Engineers) react faster. If it's a 503, they check the infrastructure configuration. If it's a 500, they wake up the developers.
+
+### Secret Management Learning
+**Lesson:** Never paste API keys in chat or commit them to git.
+**Action:** Any key exposed in chat must be rotated immediately. In Azure, these live in **App Settings**, injected into the app as Environment Variables (`os.environ`).
+
+## 6. Infrastructure: Managed Storage vs. Local Emulation
+
+We hit a wall where watchlists worked locally but failed in the cloud.
+
+### The "ReadOnly" Trap
+**Scenario:** Locally, we saved JSON files to disk. In Azure, the Function App file system is often Read-Only (or ephemeral/wiped on restart).
+**The Fix:** We added logic to *detect* the environment.
+*   **Locally:** Use a file (fallback).
+*   **Azure:** Force the use of Azure Table Storage.
+
+### Config vs. Code
+The error `503 Service Unavailable` now tells us: *'The code works, but you haven't given me a place to store data.'*
+This separates **Application Logic** (Pyton code) from **Operational Configuration** (Environment Variables). We don't change the code to fix the storage; we just set the `AzureWebJobsStorage` connection string in the Azure Portal.
+
+
+
 ## 5. Pattern: The "Data Fallback" (Macro Calendar)
 
 **Problem:** Good data (Economic Calendar) is often behind a paywall (Premium).
@@ -113,3 +144,82 @@ This ensures the "Catalysts" feature always shows *something* valuable, even if 
     *   **Core Truth:** `macro_calendar.json` (Local file). Free, reliable, curated by us.
     *   **Enhancement:** Finnhub API. "Nice to have" if available.
     *   **Degradation:** If Finnhub fails, the UI still renders the Core Truth, just without the extra "sparkle". This is "Graceful Degradation".
+
+## 7. Resilience Pattern: Lazy Initialization
+
+We hit a crash (`500 Error`) on the Catalysts page because `CatalystsService` was trying to connect to Azure Storage immediately upon creation, even though the user only wanted general market news (which doesn't need storage).
+
+### The Eager Loading Bug
+```python
+# Bad: Crashes instantly if Watchlist config is missing
+def __init__(self):
+    self._watchlists = WatchlistService() # <--- Connects to DB immediately
+```
+
+### The Lazy Fix
+```python
+# Good: Only attempts connection when actually needed
+def __init__(self):
+    self._watchlists = None
+
+def get_catalysts(self, ...):
+    if user_wants_watchlists:
+        if not self._watchlists:
+             self._watchlists = WatchlistService() # <--- Late Binding
+```
+
+**Why this matters:**
+This is crucial for **cloud reliability**. It allows parts of your application ("General Market News") to remain healthy (Returns 200 OK) even if other subsystems ("Watchlists") are misconfigured or down (Returns 503). This partial availability prevents a total system outage.
+
+## 8. Tooling: The Hidden "PATH"
+
+We struggled to run `az` commands because the Azure CLI was installed but not "visible" to our Git Bash terminal.
+
+### The Problem
+When you type `az`, the terminal looks through a list of folders stored in the `$PATH` environment variable. If the install folder (`.../Azure/CLI2/wbin`) isn't in that list, the terminal says "command not found", even if the file exists on disk.
+
+### The "Find & Fix"
+1.  **Locate:** We searched standard Program Files folders to find the actual `az` binary.
+2.  **Export:** We temporarily added it to the session: `export PATH="/path/to/cli:$PATH"`.
+
+## 9. Architecture Case Study: The "Managed Environment" Trap
+
+We encountered a complex configuration issue when deploying the Watchlists feature. Here is the breakdown of the problem and our architectural solution.
+
+### Phase 1: The Misconception (Standalone vs. Managed)
+We initially configured a **Standalone Function App** (`func-equitycloud-dev-weu`), assuming the frontend would talk to it.
+*   **Reality:** Azure Static Web Apps (SWA) automatically detects the `api/` folder and deploys it as a **Managed Function** *inside* the SWA resource.
+*   **Result:** Our keys lived in the Standalone App, but our code ran in the SWA. They were two strangers in different houses.
+
+### Phase 2: The Block (Platform Constraints)
+Once we realized we needed to configure the SWA (`stapp-equity-web`), we tried adding `AzureWebJobsStorage` to its Environment Variables.
+*   **Error:** "This setting name is not allowed."
+*   **Reason:** `AzureWebJobsStorage` is a reserved system key in Managed Environments. Azure prevents manual overrides to ensure it can manage the underlying infrastructure upgrades.
+
+### Phase 3: The Solution (The Alias Pattern)
+Since we couldn't force the platform to accept the reserved name, we changed the **Application Architecture** to be flexible.
+
+We updated `watchlist_repository.py` to use a **Priority Lookup**:
+```python
+connection_string = (
+    os.environ.get("EQUITY_STORAGE_CONNECTION")  # 1. Custom Alias (Bypasses Restrictions)
+    or os.environ.get("AzureWebJobsStorage")     # 2. Standard System Key (Default)
+)
+```
+
+**Outcome:** We set `EQUITY_STORAGE_CONNECTION` in the SWA Portal. The code sees it, connects to the database, and the platform remains happy.
+
+### Diagnostic Checklist
+To know if you are using Managed or Linked functions:
+1.  **Check URL:** `...azurestaticapps.net/api/` = Managed. `...azurewebsites.net/api/` = Standalone.
+2.  **Check Portal:** SWA Resource → APIs. "No linked backend" = Managed.
+
+### The "Mock Data" Misconception
+Watchlists **require** persistent storage by design. There is no "mock mode" for CRUD operations because:
+- User A's watchlist must remain separate from User B's.
+- Data must survive restarts.
+- This is a **stateful** feature.
+
+Other features (like General Market catalysts) work without storage because they're **stateless** — they pull from APIs or static files and don't need to remember anything between requests.
+
+
