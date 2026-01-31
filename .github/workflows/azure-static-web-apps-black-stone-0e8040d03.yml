@@ -12,7 +12,30 @@ on:
       - develop
 
 jobs:
+  quality_gate:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    name: Quality Gate (Lint & Build)
+    defaults:
+      run:
+        working-directory: ./apps/web
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install Dependencies
+        run: npm ci
+      - name: Lint Check
+        run: npm run lint
+      - name: Type Check & Build
+        run: npm run build
+
   build_and_deploy_production:
+    needs: [quality_gate]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     name: Build and Deploy (Production)
@@ -29,15 +52,14 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_BLACK_STONE_0E8040D03 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "frontend" # App source code path
+          app_location: "apps/web" # App source code path
           api_location: "api" # Api source code path
-          output_location: "" # Built app content directory
+          output_location: "out" # Built app content directory
           skip_api_build: false
           ###### End of Repository/Build Configurations ######
 
   build_and_deploy_dev:
+    needs: [quality_gate]
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     name: Build and Deploy (Dev)

@@ -1,6 +1,6 @@
 import { StockQuote, NewsArticle, StockHistoryResponse } from '@/types/stock';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:7071/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function fetchQuote(symbol: string): Promise<StockQuote> {
   const response = await fetch(`${API_BASE_URL}/quote/${symbol}`);
