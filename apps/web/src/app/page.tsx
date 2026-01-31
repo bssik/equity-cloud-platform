@@ -1,5 +1,4 @@
 import StockSearch from '@/components/StockSearch';
-import ConceptDemo from '@/components/ConceptDemo';
 
 export default function Home() {
   return (
