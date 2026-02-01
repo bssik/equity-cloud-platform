@@ -232,7 +232,7 @@ env:
   EQUITY_STORAGE_CONNECTION: ${{ secrets.EQUITY_STORAGE_CONNECTION }}
 ```
 
-**Action:** Store secrets in **GitHub Repository Secrets** (Settings → Secrets and variables → Actions), then reference them in the workflow.
+**Action:** Store secrets in **GitHub Repository Secrets** (Settings → Secrets and variables → Actions), then reference them in the workflow. After adding secrets, push a commit to trigger a new deployment with the injected environment variables.
 
 ### The "Mock Data" Misconception
 Watchlists **require** persistent storage by design. There is no "mock mode" for CRUD operations because:
