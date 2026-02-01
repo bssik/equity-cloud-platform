@@ -214,6 +214,26 @@ To know if you are using Managed or Linked functions:
 1.  **Check URL:** `...azurestaticapps.net/api/` = Managed. `...azurewebsites.net/api/` = Standalone.
 2.  **Check Portal:** SWA Resource → APIs. "No linked backend" = Managed.
 
+### Environment Variable Propagation Issue (Dev Environments)
+We discovered that environment variables set via **Azure Portal** or **Azure CLI** don't always propagate to SWA preview/dev environments reliably.
+
+**The Problem:**
+- Variables set on the SWA resource (`stapp-equity-web`) appeared in `az staticwebapp appsettings list`.
+- The Python runtime in the **dev** environment (`-dev.westeurope...`) couldn't see them.
+- The **production** environment (default hostname) saw them fine.
+
+**The Fix:**
+Environment variables for Managed Functions must be injected at **build/deploy time** via the GitHub Actions workflow:
+
+```yaml
+env:
+  ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+  EQUITY_STORAGE_CONNECTION: ${{ secrets.EQUITY_STORAGE_CONNECTION }}
+```
+
+**Action:** Store secrets in **GitHub Repository Secrets** (Settings → Secrets and variables → Actions), then reference them in the workflow.
+
 ### The "Mock Data" Misconception
 Watchlists **require** persistent storage by design. There is no "mock mode" for CRUD operations because:
 - User A's watchlist must remain separate from User B's.
