@@ -59,6 +59,25 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
         mimetype="application/json",
     )
 
+
+@app.route(route="debug/env")
+def debug_env(req: func.HttpRequest) -> func.HttpResponse:
+    """Temporary debug endpoint to see what env vars are present (keys only, no values)."""
+    env_keys = {
+        "ALPHA_VANTAGE_API_KEY": "ALPHA_VANTAGE_API_KEY" in os.environ,
+        "FINNHUB_API_KEY": "FINNHUB_API_KEY" in os.environ,
+        "EQUITY_STORAGE_CONNECTION": "EQUITY_STORAGE_CONNECTION" in os.environ,
+        "AzureWebJobsStorage": "AzureWebJobsStorage" in os.environ,
+        "AZURE_STORAGE_CONNECTION_STRING": "AZURE_STORAGE_CONNECTION_STRING" in os.environ,
+        "FINNHUB_length": len(os.environ.get("FINNHUB_API_KEY", "")) if "FINNHUB_API_KEY" in os.environ else 0,
+        "EQUITY_length": len(os.environ.get("EQUITY_STORAGE_CONNECTION", "")) if "EQUITY_STORAGE_CONNECTION" in os.environ else 0,
+    }
+    return func.HttpResponse(
+        json.dumps(env_keys, indent=2),
+        mimetype="application/json"
+    )
+
+
 @app.route(route="quote/{symbol}")
 def get_stock_data_function(req: func.HttpRequest) -> func.HttpResponse:
     symbol = req.route_params.get('symbol')
