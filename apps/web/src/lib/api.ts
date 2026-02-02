@@ -4,6 +4,16 @@ import type { CatalystsResponse } from '@/types/catalyst';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+export class ApiError extends Error {
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 export type AuthMeResult = {
   available: boolean;
   authenticated: boolean;
@@ -168,8 +178,12 @@ export async function createWatchlist(payload: {
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError('Sign in required to create watchlists.', response.status);
+    }
+
     const data = await response.json().catch(() => null);
-    throw new Error(data?.error || 'Failed to create watchlist');
+    throw new ApiError(data?.error || 'Failed to create watchlist', response.status);
   }
 
   return response.json();

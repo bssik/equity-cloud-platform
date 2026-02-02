@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CatalystEvent, CatalystsResponse } from '@/types/catalyst';
 import type { Watchlist, WatchlistSummary } from '@/types/watchlist';
 import {
+  ApiError,
   createWatchlist,
   fetchAuthMe,
   fetchCatalysts,
@@ -11,6 +12,15 @@ import {
   fetchWatchlists,
   updateWatchlist,
 } from '@/lib/api';
+import Toast from '@/components/Toast';
+
+type ToastState = {
+  open: boolean;
+  title: string;
+  message?: string;
+  actionHref?: string;
+  actionLabel?: string;
+};
 
 function toDateInputValue(d: Date): string {
   const year = d.getUTCFullYear();
@@ -47,6 +57,15 @@ function groupByDate(events: CatalystEvent[]): Array<{ date: string; events: Cat
 export default function CatalystsPanel() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const [toast, setToast] = useState<ToastState>({
+    open: false,
+    title: '',
+  });
+
+  const closeToast = useCallback(() => {
+    setToast((t) => ({ ...t, open: false }));
+  }, []);
 
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -172,6 +191,18 @@ export default function CatalystsPanel() {
 
   async function onCreateWatchlist(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      setToast({
+        open: true,
+        title: 'Sign in required',
+        message: 'Create and sync watchlists by signing in with Microsoft Entra ID.',
+        actionHref: '/.auth/login/aad?post_login_redirect_uri=/',
+        actionLabel: 'Sign in →',
+      });
+      return;
+    }
+
     if (!createName.trim()) return;
 
     setLoading(true);
@@ -189,6 +220,17 @@ export default function CatalystsPanel() {
       setCreateName('');
       setCreateSymbols('');
     } catch (e2) {
+      if (e2 instanceof ApiError && (e2.status === 401 || e2.status === 403)) {
+        setToast({
+          open: true,
+          title: 'Sign in required',
+          message: 'You need to be signed in to create watchlists.',
+          actionHref: '/.auth/login/aad?post_login_redirect_uri=/',
+          actionLabel: 'Sign in →',
+        });
+        return;
+      }
+
       setError(e2 instanceof Error ? e2.message : 'Failed to create watchlist');
     } finally {
       setLoading(false);
@@ -227,6 +269,16 @@ export default function CatalystsPanel() {
 
   return (
     <section className="mt-12">
+      <Toast
+        open={toast.open}
+        title={toast.title}
+        message={toast.message}
+        actionHref={toast.actionHref}
+        actionLabel={toast.actionLabel}
+        durationMs={6000}
+        onClose={closeToast}
+      />
+
       <div className="border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-[#0f0f10] overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -300,6 +352,20 @@ export default function CatalystsPanel() {
             <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 bg-gray-50 dark:bg-[#0b0b0c]">
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Create</p>
               <form onSubmit={onCreateWatchlist} className="space-y-2">
+                {!isAuthenticated && (
+                  <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/10 px-3 py-2">
+                    <div className="text-xs font-mono text-blue-800 dark:text-blue-300">
+                      Sign in required to create watchlists.
+                    </div>
+                    <a
+                      href="/.auth/login/aad?post_login_redirect_uri=/"
+                      className="mt-1 inline-block text-xs font-mono text-blue-700 dark:text-blue-400 hover:underline"
+                    >
+                      Sign in →
+                    </a>
+                  </div>
+                )}
+
                 <input
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
@@ -314,10 +380,10 @@ export default function CatalystsPanel() {
                 />
                 <button
                   type="submit"
-                  disabled={loading || !isAuthenticated}
+                  disabled={loading || !createName.trim()}
                   className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm"
                 >
-                  Create watchlist
+                  {isAuthenticated ? 'Create watchlist' : 'Sign in to create'}
                 </button>
               </form>
             </div>
