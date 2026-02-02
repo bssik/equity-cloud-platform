@@ -137,10 +137,15 @@ class NewsService:
         total_limit: int = 40,
         max_symbols: int = 25,
         symbol_filter: Optional[str] = None,
+        cache_version: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Fetch aggregated news for a list of symbols.
 
         Returns a flat list of articles with an extra `symbol` field.
+
+        Args:
+            cache_version: Optional version string (e.g., watchlist.updated_utc)
+                          that invalidates the aggregation cache when changed.
         """
 
         uniq: List[str] = []
@@ -158,6 +163,22 @@ class NewsService:
 
         uniq = uniq[: max_symbols]
 
+        # Cache key includes version to auto-invalidate on watchlist changes
+        aggregation_key = (
+            tuple(sorted(uniq)),
+            days,
+            per_symbol_limit,
+            total_limit,
+            (symbol_filter or "").strip().upper(),
+            cache_version or "",
+        )
+
+        now = time.time()
+        with _cache_lock:
+            cached = _news_cache.get(aggregation_key)
+            if cached and cached[0] > now:
+                return cached[1]
+
         aggregated: List[Dict[str, Any]] = []
         for sym in uniq:
             items = self.get_company_news(sym, days=days)
@@ -167,4 +188,9 @@ class NewsService:
                 aggregated.append(merged)
 
         aggregated.sort(key=lambda x: x.get("datetime", 0), reverse=True)
-        return aggregated[: max(1, total_limit)]
+        result = aggregated[: max(1, total_limit)]
+
+        with _cache_lock:
+            _news_cache[aggregation_key] = (now + _CACHE_TTL_SECONDS, result)
+
+        return result

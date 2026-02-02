@@ -483,6 +483,7 @@ def watchlist_news(req: func.HttpRequest) -> func.HttpResponse:
             total_limit=max(1, min(total, 200)),
             max_symbols=max(1, min(max_symbols, 100)),
             symbol_filter=symbol,
+            cache_version=wl.updated_utc,
         )
 
         response_model = WatchlistNewsResponse(
@@ -493,7 +494,7 @@ def watchlist_news(req: func.HttpRequest) -> func.HttpResponse:
         )
 
         etag = _make_etag(
-            f"wlnews:{user.user_id}:{watchlist_id}:{days}:{per_symbol}:{total}:{max_symbols}:{(symbol or '').strip().upper()}:{len(response_model.articles)}"
+            f"wlnews:{user.user_id}:{watchlist_id}:{wl.updated_utc}:{days}:{per_symbol}:{total}:{max_symbols}:{(symbol or '').strip().upper()}:{len(response_model.articles)}"
         )
         if req.headers.get("If-None-Match") == etag:
             return func.HttpResponse(

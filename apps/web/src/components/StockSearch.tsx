@@ -37,6 +37,15 @@ export default function StockSearch() {
         marketFetchHistory(symbol)
       ]);
 
+      console.log('[StockSearch] History response:', {
+        symbol: historyData.symbol,
+        itemCount: historyData.history.length,
+        firstItem: historyData.history[0],
+        lastItem: historyData.history[historyData.history.length - 1],
+        hasSMA50: historyData.history.some(h => h.sma50 !== undefined && h.sma50 !== null),
+        hasSMA200: historyData.history.some(h => h.sma200 !== undefined && h.sma200 !== null),
+      });
+
       // Batch Updates (React 18 handles this automatically, but good to know)
       setQuote(quoteData);
       setNews(newsData);
