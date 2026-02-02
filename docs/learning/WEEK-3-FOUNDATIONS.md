@@ -222,17 +222,27 @@ We discovered that environment variables set via **Azure Portal** or **Azure CLI
 - The Python runtime in the **dev** environment (`-dev.westeurope...`) couldn't see them.
 - The **production** environment (default hostname) saw them fine.
 
-**The Fix:**
-Environment variables for Managed Functions must be injected at **build/deploy time** via the GitHub Actions workflow:
+**How we proved it (no guessing):**
+- `/api/health` showed `alpha_vantage: true` but `finnhub: false` and `watchlists_storage: false` even after setting those values.
+- We added a temporary diagnostic endpoint (`/api/debug/env`) that returns **presence booleans** (and lengths) for key settings.
+    - In `develop`/dev (`...-dev.westeurope...`), it reported `FINNHUB_API_KEY: false` and `EQUITY_STORAGE_CONNECTION: false`.
+    - In `main`/default (`...azurestaticapps.net`), it reported all `true`.
 
-```yaml
-env:
-  ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
-  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
-  EQUITY_STORAGE_CONNECTION: ${{ secrets.EQUITY_STORAGE_CONNECTION }}
-```
+This tells us the problem was not “bad code” or “wrong connection string”, but **the runtime environment not receiving the settings**.
 
-**Action:** Store secrets in **GitHub Repository Secrets** (Settings → Secrets and variables → Actions), then reference them in the workflow. After adding secrets, push a commit to trigger a new deployment with the injected environment variables.
+**What we learned (important nuance):**
+- **SWA Environments are separate runtimes.** The `dev` environment is its own environment (branch-linked), not just a UI label.
+- **App Settings propagation is not symmetric.** Even when `az staticwebapp appsettings list` shows values, the `dev` runtime may still not see them.
+- **GitHub Actions `env:` is not the same as runtime env.** Setting `env:` on the deploy step can help the *build step* and tooling, but it does not reliably become an environment variable inside the Managed Functions runtime.
+
+**The Fix (what actually worked):**
+1. Treat `main` / default hostname as the authoritative “configured runtime” for Managed Functions.
+2. Configure secrets on the **Static Web App** resource (Portal/CLI) and validate them via `/api/health` (and, temporarily, `/api/debug/env`).
+3. Promote fixes to production by merging `develop` → `main` so the default environment runs the same code that reads the settings.
+
+**Recommended playbook going forward:**
+- For reliable full-stack dev testing with secrets: use local emulation (`swa start ... --api-location api`) where `.env`/`local.settings.json` behavior is predictable.
+- If we need truly reliable non-prod cloud environments with distinct app settings: switch to a **Linked Backend** (Standalone Function App) where settings are first-class and can be isolated per environment/slot.
 
 ### The "Mock Data" Misconception
 Watchlists **require** persistent storage by design. There is no "mock mode" for CRUD operations because:
