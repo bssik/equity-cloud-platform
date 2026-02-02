@@ -46,11 +46,15 @@ function groupByDate(events: CatalystEvent[]): Array<{ date: string; events: Cat
     .map(([date, es]) => ({ date, events: es }));
 }
 
+type CatalystFocus = 'all' | 'macro' | 'sector';
+
 export default function CatalystsPanel() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const { showAuthRequiredToast } = useToast();
+
+  const [focus, setFocus] = useState<CatalystFocus>('all');
 
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -78,7 +82,27 @@ export default function CatalystsPanel() {
     [watchlists, selectedId]
   );
 
-  const grouped = useMemo(() => groupByDate(catalysts?.events ?? []), [catalysts]);
+  const filteredEvents = useMemo(() => {
+    const events = catalysts?.events ?? [];
+    if (focus === 'all') return events;
+
+    if (focus === 'macro') {
+      return events.filter((e) => e.type === 'macro');
+    }
+
+    // focus === 'sector'
+    const watchlistSectors = new Set((catalysts?.sectors ?? []).filter(Boolean));
+    return events.filter((e) => {
+      if (e.type === 'earnings') return true;
+      if (watchlistSectors.size === 0) return false;
+
+      // Macro events can be tagged with sector-like labels (e.g., Energy, Real Estate).
+      // In "Sector/Industry" mode we only include those macro events that match the watchlist.
+      return e.sectors.some((s) => watchlistSectors.has(s));
+    });
+  }, [catalysts, focus]);
+
+  const grouped = useMemo(() => groupByDate(filteredEvents), [filteredEvents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -409,8 +433,21 @@ export default function CatalystsPanel() {
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Timeline</p>
-              <div className="text-xs font-mono text-gray-500 dark:text-gray-500">
-                Providers: earnings={catalysts?.providers.earnings ?? '—'}, macro={catalysts?.providers.macro ?? '—'}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-mono text-gray-500 dark:text-gray-500">Focus</label>
+                <select
+                  value={focus}
+                  onChange={(e) => setFocus(e.target.value as CatalystFocus)}
+                  className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111] text-gray-800 dark:text-gray-200 text-xs font-mono"
+                >
+                  <option value="all">All</option>
+                  <option value="macro">Macro</option>
+                  <option value="sector">Sector/Industry</option>
+                </select>
+
+                <div className="ml-2 text-xs font-mono text-gray-500 dark:text-gray-500">
+                  Providers: earnings={catalysts?.providers.earnings ?? '—'}, macro={catalysts?.providers.macro ?? '—'}
+                </div>
               </div>
             </div>
 
@@ -419,7 +456,7 @@ export default function CatalystsPanel() {
                 <div className="p-6 text-sm font-mono text-gray-500 dark:text-gray-500">Loading…</div>
               ) : grouped.length === 0 ? (
                 <div className="p-6 text-sm font-mono text-gray-500 dark:text-gray-500">
-                  No catalysts found for this range.
+                  No catalysts found for this range{focus !== 'all' ? ' with the current focus.' : '.'}
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200 dark:divide-gray-800">
