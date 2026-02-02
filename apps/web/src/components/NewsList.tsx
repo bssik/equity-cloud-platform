@@ -5,6 +5,9 @@ import { NewsArticle } from '@/types/stock';
 interface NewsListProps {
   news: NewsArticle[];
   loading?: boolean;
+  title?: string;
+  showEmptyState?: boolean;
+  className?: string;
 }
 
 const formatTimeAgo = (timestamp: number) => {
@@ -21,13 +24,25 @@ const formatTimeAgo = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString();
 };
 
-export default function NewsList({ news, loading = false }: NewsListProps) {
+export default function NewsList({
+  news,
+  loading = false,
+  title = 'Recent News',
+  showEmptyState = false,
+  className,
+}: NewsListProps) {
+  const containerClassName = [
+    'mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   if (loading) {
     return (
-      <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6">
+      <div className={containerClassName}>
         <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-          Recent News
+          {title}
         </h3>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -46,13 +61,24 @@ export default function NewsList({ news, loading = false }: NewsListProps) {
   }
 
   if (news.length === 0) {
-    return null;
+    if (!showEmptyState) return null;
+
+    return (
+      <div className={containerClassName}>
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
+          {title}
+        </h3>
+        <div className="text-sm font-mono text-gray-500 dark:text-gray-500">
+          No news found.
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="mt-8 bg-white dark:bg-[#111] rounded-lg border border-gray-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
+    <div className={containerClassName}>
       <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-        Recent News
+        {title}
       </h3>
       <div className="space-y-3">
         {news.map((article, index) => (
@@ -69,9 +95,16 @@ export default function NewsList({ news, loading = false }: NewsListProps) {
               {article.headline}
             </h4>
             <div className="flex justify-between items-center gap-3 text-sm">
-              <span className="text-blue-600 dark:text-blue-400 font-medium truncate">
-                {article.source}
-              </span>
+              <div className="min-w-0 flex items-center gap-2">
+                {article.symbol ? (
+                  <span className="shrink-0 px-2 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111] text-[10px] font-mono text-gray-700 dark:text-gray-300">
+                    {article.symbol}
+                  </span>
+                ) : null}
+                <span className="text-blue-600 dark:text-blue-400 font-medium truncate">
+                  {article.source}
+                </span>
+              </div>
               <span className="text-gray-500 dark:text-gray-400 font-mono text-[10px] sm:text-xs whitespace-nowrap">
                 {formatTimeAgo(article.datetime)}
               </span>

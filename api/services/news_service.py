@@ -1,8 +1,27 @@
 import os
 import requests
 import logging
-from typing import List, Dict, Any
+import threading
+import time
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
+
+
+class DependencyNotConfiguredError(RuntimeError):
+    pass
+
+
+class UpstreamRateLimitedError(RuntimeError):
+    pass
+
+
+class UpstreamUnavailableError(RuntimeError):
+    pass
+
+
+_CACHE_TTL_SECONDS = 300
+_cache_lock = threading.Lock()
+_news_cache: Dict[Tuple[str, int], Tuple[float, List[Dict[str, Any]]]] = {}
 
 class NewsService:
     """
@@ -13,6 +32,7 @@ class NewsService:
     def __init__(self):
         self.api_key = os.environ.get('FINNHUB_API_KEY', '')
         self.base_url = "https://finnhub.io/api/v1"
+        self._session = requests.Session()
 
     def get_company_news(self, symbol: str, days: int = 7) -> List[Dict[str, Any]]:
         """
@@ -33,7 +53,14 @@ class NewsService:
             raise ValueError("Stock symbol is required")
 
         if not self.api_key:
-            raise ValueError("FINNHUB_API_KEY not configured in environment")
+            raise DependencyNotConfiguredError("FINNHUB_API_KEY not configured")
+
+        cache_key = (symbol.strip().upper(), int(days))
+        now = time.time()
+        with _cache_lock:
+            cached = _news_cache.get(cache_key)
+            if cached and cached[0] > now:
+                return cached[1]
 
         # Calculate date range
         end_date = datetime.now()
@@ -46,7 +73,7 @@ class NewsService:
         logging.info(f"Fetching news for {symbol} from {from_date} to {to_date}")
 
         try:
-            response = requests.get(
+            response = self._session.get(
                 f"{self.base_url}/company-news",
                 params={
                     "symbol": symbol.upper(),
@@ -79,17 +106,65 @@ class NewsService:
             filtered_news.sort(key=lambda x: x["datetime"], reverse=True)
             result = filtered_news[:10]
 
+            with _cache_lock:
+                _news_cache[cache_key] = (now + _CACHE_TTL_SECONDS, result)
+
             logging.info(f"Success: Retrieved {len(result)} news articles for {symbol}")
             return result
 
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404:
+            status = getattr(e.response, "status_code", None)
+            if status == 404:
                 raise ValueError(f"Invalid stock symbol: {symbol}")
+            if status == 429:
+                logging.warning("Finnhub rate limited for %s", symbol)
+                raise UpstreamRateLimitedError("Upstream rate limited")
             logging.error(f"Finnhub API HTTP Error: {e}")
-            raise Exception("News API temporarily unavailable")
+            raise UpstreamUnavailableError("News API temporarily unavailable")
         except requests.exceptions.Timeout:
             logging.error("Finnhub API request timeout")
-            raise Exception("News API request timeout")
+            raise UpstreamUnavailableError("News API request timeout")
         except Exception as e:
             logging.error(f"Finnhub API Error: {str(e)}")
-            raise Exception("Failed to fetch news data")
+            raise UpstreamUnavailableError("Failed to fetch news data")
+
+
+    def get_watchlist_news(
+        self,
+        symbols: List[str],
+        days: int = 7,
+        per_symbol_limit: int = 5,
+        total_limit: int = 40,
+        max_symbols: int = 25,
+        symbol_filter: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Fetch aggregated news for a list of symbols.
+
+        Returns a flat list of articles with an extra `symbol` field.
+        """
+
+        uniq: List[str] = []
+        seen = set()
+        for raw in symbols:
+            sym = (raw or "").strip().upper()
+            if not sym or sym in seen:
+                continue
+            seen.add(sym)
+            uniq.append(sym)
+
+        if symbol_filter:
+            sf = symbol_filter.strip().upper()
+            uniq = [s for s in uniq if s == sf]
+
+        uniq = uniq[: max_symbols]
+
+        aggregated: List[Dict[str, Any]] = []
+        for sym in uniq:
+            items = self.get_company_news(sym, days=days)
+            for it in items[: max(1, per_symbol_limit)]:
+                merged = dict(it)
+                merged["symbol"] = sym
+                aggregated.append(merged)
+
+        aggregated.sort(key=lambda x: x.get("datetime", 0), reverse=True)
+        return aggregated[: max(1, total_limit)]

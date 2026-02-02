@@ -7,7 +7,9 @@ export type MarketDataSource = 'mock' | 'api';
 export function getMarketDataSource(): MarketDataSource {
   const raw = process.env.NEXT_PUBLIC_MARKET_DATA_SOURCE;
 
-  if (!raw) return 'mock';
+  // Default to real API to avoid silently showing demo/mock market data.
+  // Set NEXT_PUBLIC_MARKET_DATA_SOURCE=mock to opt into mock mode explicitly.
+  if (!raw) return 'api';
 
   const normalized = raw.toLowerCase();
 
@@ -15,8 +17,8 @@ export function getMarketDataSource(): MarketDataSource {
     return normalized;
   }
 
-  // Fail safe: stay in mock mode if misconfigured.
-  return 'mock';
+  // Fail safe: prefer real API if misconfigured.
+  return 'api';
 }
 
 export async function marketFetchQuote(symbol: string): Promise<StockQuote> {

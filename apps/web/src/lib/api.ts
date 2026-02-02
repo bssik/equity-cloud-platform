@@ -133,6 +133,32 @@ export async function fetchNews(symbol: string): Promise<NewsArticle[]> {
   return data.articles || [];
 }
 
+export async function fetchWatchlistNews(params: {
+  watchlistId: string;
+  symbol?: string;
+  days?: number;
+  perSymbol?: number;
+  total?: number;
+}): Promise<NewsArticle[]> {
+  const query = new URLSearchParams();
+  if (params.symbol) query.set('symbol', params.symbol);
+  if (params.days) query.set('days', String(params.days));
+  if (params.perSymbol) query.set('perSymbol', String(params.perSymbol));
+  if (params.total) query.set('total', String(params.total));
+
+  const url = `${API_BASE_URL}/watchlists/${params.watchlistId}/news${query.toString() ? `?${query.toString()}` : ''}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) return [];
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || 'Failed to fetch watchlist news');
+  }
+
+  const data = await response.json().catch(() => null);
+  return data?.articles || [];
+}
+
 export async function fetchSMA(symbol: string): Promise<{ sma50_values: Record<string, number>, sma200_values: Record<string, number> } | null> {
   const response = await fetch(`${API_BASE_URL}/sma/${symbol}`);
 

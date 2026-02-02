@@ -10,6 +10,7 @@ export interface StockQuote {
 }
 
 export interface NewsArticle {
+  symbol?: string;
   headline: string;
   summary: string;
   url: string;

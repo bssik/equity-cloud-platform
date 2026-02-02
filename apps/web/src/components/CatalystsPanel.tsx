@@ -2,17 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CatalystEvent, CatalystsResponse } from '@/types/catalyst';
+import type { NewsArticle } from '@/types/stock';
 import type { Watchlist, WatchlistSummary } from '@/types/watchlist';
 import {
   ApiError,
   createWatchlist,
   fetchAuthMe,
   fetchCatalysts,
+  fetchWatchlistNews,
   fetchWatchlist,
   fetchWatchlists,
   updateWatchlist,
 } from '@/lib/api';
 import { useToast } from '@/components/toast/ToastProvider';
+import NewsList from '@/components/NewsList';
 
 function toDateInputValue(d: Date): string {
   const year = d.getUTCFullYear();
@@ -72,6 +75,16 @@ export default function CatalystsPanel() {
   const [activeWatchlist, setActiveWatchlist] = useState<Watchlist | null>(null);
   const [catalysts, setCatalysts] = useState<CatalystsResponse | null>(null);
 
+  const holdingsSymbols = useMemo(() => {
+    if (!activeWatchlist) return [];
+    return uniqUpperSymbols(activeWatchlist.items.map((i) => ({ symbol: i.symbol })));
+  }, [activeWatchlist]);
+
+  const [companySymbol, setCompanySymbol] = useState<string>('');
+  const [watchlistNews, setWatchlistNews] = useState<NewsArticle[]>([]);
+  const [watchlistNewsLoading, setWatchlistNewsLoading] = useState(false);
+  const [watchlistNewsError, setWatchlistNewsError] = useState<string>('');
+
   const [createName, setCreateName] = useState('');
   const [createSymbols, setCreateSymbols] = useState('');
 
@@ -84,25 +97,37 @@ export default function CatalystsPanel() {
 
   const filteredEvents = useMemo(() => {
     const events = catalysts?.events ?? [];
-    if (focus === 'all') return events;
+    let focusFiltered: CatalystEvent[];
 
-    if (focus === 'macro') {
-      return events.filter((e) => e.type === 'macro');
+    if (focus === 'all') {
+      focusFiltered = events;
+    } else if (focus === 'macro') {
+      focusFiltered = events.filter((e) => e.type === 'macro');
+    } else {
+      // focus === 'sector'
+      const watchlistSectors = new Set((catalysts?.sectors ?? []).filter(Boolean));
+      focusFiltered = events.filter((e) => {
+        if (e.type === 'earnings') return true;
+        if (watchlistSectors.size === 0) return false;
+
+        // Macro events can be tagged with sector-like labels (e.g., Energy, Real Estate).
+        // In "Sector/Industry" mode we only include those macro events that match the watchlist.
+        return e.sectors.some((s) => watchlistSectors.has(s));
+      });
     }
 
-    // focus === 'sector'
-    const watchlistSectors = new Set((catalysts?.sectors ?? []).filter(Boolean));
-    return events.filter((e) => {
-      if (e.type === 'earnings') return true;
-      if (watchlistSectors.size === 0) return false;
+    if (!companySymbol) return focusFiltered;
 
-      // Macro events can be tagged with sector-like labels (e.g., Energy, Real Estate).
-      // In "Sector/Industry" mode we only include those macro events that match the watchlist.
-      return e.sectors.some((s) => watchlistSectors.has(s));
-    });
-  }, [catalysts, focus]);
+    // Company filter applies to earnings (symbol-specific) only.
+    return focusFiltered.filter((e) => (e.type === 'earnings' ? e.symbol === companySymbol : true));
+  }, [catalysts, companySymbol, focus]);
 
   const grouped = useMemo(() => groupByDate(filteredEvents), [filteredEvents]);
+
+  const filteredNews = useMemo(() => {
+    if (!companySymbol) return watchlistNews;
+    return watchlistNews.filter((a) => (a.symbol ? a.symbol === companySymbol : true));
+  }, [companySymbol, watchlistNews]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,6 +217,51 @@ export default function CatalystsPanel() {
       cancelled = true;
     };
   }, [selectedId, fromDate, toDate]);
+
+  useEffect(() => {
+    // If the user changes watchlists, reset company selection if it no longer exists.
+    if (companySymbol && !holdingsSymbols.includes(companySymbol)) {
+      setCompanySymbol('');
+    }
+  }, [companySymbol, holdingsSymbols]);
+
+  useEffect(() => {
+    if (!selectedId || !isAuthenticated) {
+      setWatchlistNews([]);
+      setWatchlistNewsError('');
+      setWatchlistNewsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadWatchlistNews() {
+      setWatchlistNewsLoading(true);
+      setWatchlistNewsError('');
+      try {
+        const articles = await fetchWatchlistNews({
+          watchlistId: selectedId,
+          days: 7,
+          perSymbol: 5,
+          total: 40,
+        });
+        if (cancelled) return;
+        setWatchlistNews(articles);
+      } catch (e) {
+        if (cancelled) return;
+        setWatchlistNews([]);
+        setWatchlistNewsError(e instanceof Error ? e.message : 'Failed to load news');
+      } finally {
+        if (!cancelled) setWatchlistNewsLoading(false);
+      }
+    }
+
+    void loadWatchlistNews();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, selectedId]);
 
   async function refreshWatchlists() {
     const list = await fetchWatchlists();
@@ -445,6 +515,21 @@ export default function CatalystsPanel() {
                   <option value="sector">Sector/Industry</option>
                 </select>
 
+                <label className="ml-2 text-xs font-mono text-gray-500 dark:text-gray-500">Company</label>
+                <select
+                  value={companySymbol}
+                  onChange={(e) => setCompanySymbol(e.target.value)}
+                  disabled={!activeWatchlist || holdingsSymbols.length === 0}
+                  className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111] text-gray-800 dark:text-gray-200 text-xs font-mono disabled:opacity-60"
+                >
+                  <option value="">All holdings</option>
+                  {holdingsSymbols.map((sym) => (
+                    <option key={sym} value={sym}>
+                      {sym}
+                    </option>
+                  ))}
+                </select>
+
                 <div className="ml-2 text-xs font-mono text-gray-500 dark:text-gray-500">
                   Providers: earnings={catalysts?.providers.earnings ?? '—'}, macro={catalysts?.providers.macro ?? '—'}
                 </div>
@@ -497,6 +582,24 @@ export default function CatalystsPanel() {
             {catalysts?.providers.macro === 'unavailable_or_empty' && (
               <div className="mt-3 text-[11px] font-mono text-gray-500 dark:text-gray-500">
                 Macro calendar is best-effort: Finnhub economic calendar may require Premium access.
+              </div>
+            )}
+
+            {activeWatchlist && (
+              <div className="mt-6">
+                {watchlistNewsError ? (
+                  <div className="p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400 text-xs font-mono">
+                    {watchlistNewsError}
+                  </div>
+                ) : null}
+
+                <NewsList
+                  news={filteredNews}
+                  loading={watchlistNewsLoading}
+                  title={companySymbol ? `News: ${companySymbol}` : 'News: All holdings'}
+                  showEmptyState
+                  className="mt-3"
+                />
               </div>
             )}
           </div>

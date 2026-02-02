@@ -80,3 +80,20 @@ class CatalystsResponse(BaseModel):
     sectors: List[str] = Field(default_factory=list)
     events: List[CatalystEvent] = Field(default_factory=list)
     providers: Dict[str, str] = Field(default_factory=dict)
+
+
+class NewsArticle(BaseModel):
+    headline: str
+    summary: str = ""
+    url: str = ""
+    source: str = ""
+    datetime: int = 0
+    image: str = ""
+    symbol: Optional[str] = None
+
+
+class WatchlistNewsResponse(BaseModel):
+    watchlist_id: str
+    symbols: List[str] = Field(default_factory=list)
+    articles: List[NewsArticle] = Field(default_factory=list)
+    providers: Dict[str, str] = Field(default_factory=dict)
