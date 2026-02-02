@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CatalystEvent, CatalystsResponse } from '@/types/catalyst';
 import type { Watchlist, WatchlistSummary } from '@/types/watchlist';
 import {
@@ -12,15 +12,7 @@ import {
   fetchWatchlists,
   updateWatchlist,
 } from '@/lib/api';
-import Toast from '@/components/Toast';
-
-type ToastState = {
-  open: boolean;
-  title: string;
-  message?: string;
-  actionHref?: string;
-  actionLabel?: string;
-};
+import { useToast } from '@/components/toast/ToastProvider';
 
 function toDateInputValue(d: Date): string {
   const year = d.getUTCFullYear();
@@ -58,14 +50,7 @@ export default function CatalystsPanel() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const [toast, setToast] = useState<ToastState>({
-    open: false,
-    title: '',
-  });
-
-  const closeToast = useCallback(() => {
-    setToast((t) => ({ ...t, open: false }));
-  }, []);
+  const { showAuthRequiredToast } = useToast();
 
   const [watchlists, setWatchlists] = useState<WatchlistSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -193,12 +178,9 @@ export default function CatalystsPanel() {
     e.preventDefault();
 
     if (!isAuthenticated) {
-      setToast({
-        open: true,
-        title: 'Sign in required',
+      showAuthRequiredToast({
         message: 'Create and sync watchlists by signing in with Microsoft Entra ID.',
-        actionHref: '/.auth/login/aad?post_login_redirect_uri=/',
-        actionLabel: 'Sign in →',
+        redirectTo: '/',
       });
       return;
     }
@@ -221,12 +203,9 @@ export default function CatalystsPanel() {
       setCreateSymbols('');
     } catch (e2) {
       if (e2 instanceof ApiError && (e2.status === 401 || e2.status === 403)) {
-        setToast({
-          open: true,
-          title: 'Sign in required',
+        showAuthRequiredToast({
           message: 'You need to be signed in to create watchlists.',
-          actionHref: '/.auth/login/aad?post_login_redirect_uri=/',
-          actionLabel: 'Sign in →',
+          redirectTo: '/',
         });
         return;
       }
@@ -269,16 +248,6 @@ export default function CatalystsPanel() {
 
   return (
     <section className="mt-12">
-      <Toast
-        open={toast.open}
-        title={toast.title}
-        message={toast.message}
-        actionHref={toast.actionHref}
-        actionLabel={toast.actionLabel}
-        durationMs={6000}
-        onClose={closeToast}
-      />
-
       <div className="border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-[#0f0f10] overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

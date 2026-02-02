@@ -30,7 +30,7 @@ export default function Toast({
     }, durationMs);
 
     return () => clearTimeout(timer);
-  }, [open, durationMs, onClose]);
+  }, [open, title, message, actionHref, actionLabel, durationMs, onClose]);
 
   if (!open) return null;
 
