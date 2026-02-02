@@ -154,10 +154,9 @@ class CatalystsService:
             if watchlist and countries and e.country and len(e.country) == 2 and e.country not in countries:
                 continue
 
-            # Filter by sectors if we have both sides.
-            if watchlist and sectors and e.sectors:
-                if not any(s in sectors for s in e.sectors):
-                    continue
+            # Macro events are "all-market" by nature.
+            # Even if a watchlist is sector-constrained (e.g., Technology), macro catalysts like CPI/FOMC
+            # still matter, so we do not sector-filter macro events.
 
             events.append(e)
 
